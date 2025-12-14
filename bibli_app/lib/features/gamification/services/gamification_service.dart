@@ -110,6 +110,9 @@ class GamificationService {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return false;
 
+      final previousTotalXp = await getTotalXp();
+      final previousLevel = _levelForXp(previousTotalXp);
+
       await Supabase.instance.client
           .from('xp_transactions')
           .insert({
@@ -123,12 +126,12 @@ class GamificationService {
           .single();
 
       // Atualizar cache local imediato
-      final currentXp = _localCache['total_xp'] ?? 0;
-      _localCache['total_xp'] = currentXp + xpAmount;
+      final currentXp = previousTotalXp;
+      final updatedXp = currentXp + xpAmount;
+      _localCache['total_xp'] = updatedXp;
 
-      // Verificar se subiu de nível
-      final previousLevel = await getCurrentLevel();
-      final newLevel = await getCurrentLevel();
+      // Verificar se subiu de nível (com base no delta de XP)
+      final newLevel = _levelForXp(updatedXp);
 
       if (newLevel > previousLevel) {
         print('🎉 Level up! Novo nível: $newLevel');
@@ -435,12 +438,7 @@ class GamificationService {
   // Obter nível atual
   static Future<int> getCurrentLevel() async {
     final totalXp = await getTotalXp();
-
-    if (totalXp >= 1200) return 5;
-    if (totalXp >= 750) return 4;
-    if (totalXp >= 400) return 3;
-    if (totalXp >= 150) return 2;
-    return 1;
+    return _levelForXp(totalXp);
   }
 
   // Obter XP necessário para o próximo nível
@@ -453,6 +451,18 @@ class GamificationService {
     if (currentLevel >= 5) return 0;
 
     return levelRequirements[currentLevel] - totalXp;
+  }
+
+  static int _levelForXp(int totalXp) {
+    final levelRequirements = [0, 150, 400, 750, 1200];
+    int level = 1;
+    for (int i = 1; i < levelRequirements.length; i++) {
+      if (totalXp >= levelRequirements[i]) {
+        level = i + 1; // níveis começam em 1
+      }
+    }
+    // Se atingir o último limite, permanece no último nível configurado
+    return level.clamp(1, levelRequirements.length);
   }
 
   // Obter informações do nível atual

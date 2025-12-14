@@ -43,7 +43,7 @@ class WelcomeScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Navegar para próxima etapa do onboarding
+                    Navigator.pushReplacementNamed(context, '/reminders');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF5dc1b9),

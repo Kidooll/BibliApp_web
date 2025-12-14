@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Tela de seleção de horário e dias para lembrete de devocional
 class RemindersScreen extends StatefulWidget {
@@ -12,6 +13,27 @@ class _RemindersScreenState extends State<RemindersScreen> {
   TimeOfDay _selectedTime = const TimeOfDay(hour: 7, minute: 0);
   final List<bool> _selectedDays = List.generate(7, (index) => false);
   final List<String> _days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+
+  Future<void> _savePreferencesAndContinue() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('reminder_time', _selectedTime.format(context));
+    await prefs.setStringList(
+      'reminder_days',
+      _selectedDays.map((d) => d ? '1' : '0').toList(),
+    );
+    await prefs.setBool('reminder_configured', true);
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/home');
+    }
+  }
+
+  Future<void> _skipAndContinue() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reminder_skipped', true);
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/home');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,9 +98,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Salvar preferências e seguir
-                  },
+                  onPressed: _savePreferencesAndContinue,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF005954),
                     shape: const StadiumBorder(),
@@ -88,9 +108,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 ),
               ),
               TextButton(
-                onPressed: () {
-                  // Pular etapa
-                },
+                onPressed: _skipAndContinue,
                 child: const Text('NÃO OBRIGADO'),
               ),
             ],

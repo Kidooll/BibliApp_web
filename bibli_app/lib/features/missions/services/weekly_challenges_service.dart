@@ -104,6 +104,9 @@ class WeeklyChallengesService {
 
   Future<bool> claimChallenge(int userChallengeProgressId) async {
     try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) return false;
+
       final row = await _supabase
           .from('user_challenge_progress')
           .select(
@@ -116,6 +119,16 @@ class WeeklyChallengesService {
       final ch = row['weekly_challenges'] as Map<String, dynamic>;
       final title = ch['title'] as String? ?? 'Desafio semanal';
       final xp = ch['xp_reward'] as int? ?? 0;
+
+      // Evita múltiplos resgates do mesmo desafio (anti-farming)
+      final alreadyClaimed = await _supabase
+          .from('xp_transactions')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('transaction_type', 'weekly_challenge')
+          .eq('related_id', row['challenge_id'])
+          .limit(1);
+      if (alreadyClaimed.isNotEmpty) return false;
 
       if (xp > 0) {
         final ok = await GamificationService.addXp(

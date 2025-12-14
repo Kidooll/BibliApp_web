@@ -209,20 +209,19 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       final currentXp = _totalXp; // usar XP total real
-      final levelRequirements = const [0, 150, 400, 750, 1200];
-      final currentLevel = _userProfile?.currentLevel ?? 1;
-      final nextLevelXp = currentLevel >= 5
+      final currentLevel = (_userProfile?.currentLevel ?? 1).clamp(1, 99);
+      final thresholds = _levelThresholdsFor(currentLevel + 1);
+      final previousThreshold =
+          thresholds[(currentLevel - 1).clamp(0, thresholds.length - 1)];
+      final nextThreshold = currentLevel >= thresholds.length - 1
+          ? thresholds.last
+          : thresholds[currentLevel];
+      final totalForLevel = (nextThreshold - previousThreshold).clamp(1, 1 << 31);
+      final xpToNext = currentLevel >= thresholds.length - 1
           ? 0
-          : levelRequirements[currentLevel];
-      final xpToNext = currentLevel >= 5
-          ? 0
-          : (nextLevelXp - currentXp).clamp(0, nextLevelXp);
-      final totalForLevel = currentLevel >= 5
-          ? 1
-          : (levelRequirements[currentLevel] -
-                levelRequirements[currentLevel - 1]);
-      final currentXpInLevel = (currentXp - levelRequirements[currentLevel - 1])
-          .clamp(0, totalForLevel);
+          : (nextThreshold - currentXp).clamp(0, totalForLevel);
+      final currentXpInLevel =
+          (currentXp - previousThreshold).clamp(0, totalForLevel);
       final progress = totalForLevel > 0
           ? currentXpInLevel / totalForLevel
           : 0.0;
@@ -777,5 +776,20 @@ class _HomeScreenState extends State<HomeScreen> {
       'Dezembro',
     ];
     return months[month - 1];
+  }
+
+  List<int> _levelThresholdsFor(int level) {
+    final base = [0, 150, 400, 750, 1200];
+    if (level < base.length) {
+      return base.sublist(0, level + 1);
+    }
+
+    final thresholds = List<int>.from(base);
+    var increment = base.last - base[base.length - 2]; // mantém padrão de crescimento
+    for (int i = base.length; i <= level; i++) {
+      thresholds.add(thresholds.last + increment);
+      increment += 100;
+    }
+    return thresholds;
   }
 }

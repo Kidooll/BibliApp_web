@@ -1,7 +1,9 @@
 class AppConfig {
-  // Supabase Configuration
-  static const String supabaseUrl = 'https://llcnxgrlvldvnhpsapdx.supabase.co';
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsY254Z3Jsdmxkdm5ocHNhcGR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4NzUyMzIsImV4cCI6MjA2MzQ1MTIzMn0.SmQ17LcUGX695I8h1yLYT853ic2QwNvneYm_XubbTLk';
+  // Supabase Configuration (carregado via --dart-define em tempo de build)
+  static final String supabaseUrl =
+      const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+  static final String supabaseAnonKey =
+      const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
 
   // App Configuration
   static const String appName = 'BibliApp';
@@ -12,4 +14,12 @@ class AppConfig {
 
   // Contact Information
   static const String privacyEmail = 'privacidade@bibliapp.com';
+
+  static void ensureSupabaseConfig() {
+    if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
+      throw StateError(
+        'Configuração do Supabase ausente. Defina SUPABASE_URL e SUPABASE_ANON_KEY via --dart-define.',
+      );
+    }
+  }
 }
