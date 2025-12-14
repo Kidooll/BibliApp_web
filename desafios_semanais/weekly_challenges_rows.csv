@@ -1,0 +1,13 @@
+id,title,description,start_date,end_date,challenge_type,target_value,xp_reward,coin_reward,is_active,created_at,updated_at
+1,Devocional em Dia,Leia 5 devocionais durante a semana. Mantenha a chama acesa!,2025-06-23,2025-06-29,reading,5,150,50,true,2025-06-19 21:40:06.182674+00,2025-06-19 21:40:06.182674+00
+2,Espalhe a Palavra,Compartilhe 3 versículos com amigos ou nas redes sociais.,2025-06-23,2025-06-29,sharing,3,100,40,true,2025-06-19 21:40:06.182674+00,2025-06-19 21:40:06.182674+00
+3,Aprofundando na Palavra,Leia 2 estudos bíblicos disponíveis na aba de estudos nesta semana.,2025-06-23,2025-06-29,study,2,120,35,true,2025-06-19 21:40:06.182674+00,2025-06-19 21:40:06.182674+00
+4,Versículo da Semana,Adicione 2 versículos aos seus favoritos e tente memorizá-los.,2025-06-23,2025-06-29,favorite,2,80,20,true,2025-06-19 21:40:06.182674+00,2025-06-19 21:40:06.182674+00
+5,Refletindo com Propósito,Escreva uma nota/reflexão em pelo menos 3 devocionais.,2025-06-23,2025-06-29,note,3,130,50,true,2025-06-19 21:40:06.182674+00,2025-06-19 21:40:06.182674+00
+6,Sete é o Número da Perfeição,Complete 7 devocionais ao longo da semana. Você consegue!,2025-06-30,2025-07-06,reading,7,200,70,true,2025-06-19 22:05:48.075291+00,2025-06-19 22:05:48.075291+00
+7,Compartilhando Esperança,Compartilhe ao menos 2 versículos que falaram ao seu coração.,2025-06-30,2025-07-06,sharing,2,90,30,true,2025-06-19 22:05:48.075291+00,2025-06-19 22:05:48.075291+00
+8,Nota Espiritual,Escreva 1 reflexão pessoal em um devocional que te impactou.,2025-06-30,2025-07-06,note,1,50,15,true,2025-06-19 22:05:48.075291+00,2025-06-19 22:05:48.075291+00
+9,Tesouros da Palavra,Adicione 3 novos versículos aos seus favoritos.,2025-06-30,2025-07-06,favorite,3,110,25,true,2025-06-19 22:05:48.075291+00,2025-06-19 22:05:48.075291+00
+10,Raízes Mais Fundas,Leia pelo menos 1 estudo completo e aprofunde sua fé.,2025-06-30,2025-07-06,study,1,100,30,true,2025-06-19 22:05:48.075291+00,2025-06-19 22:05:48.075291+00
+11,Raízes Mais Profundas,Leia pelo menos 1 estudo completo e aprofunde sua fé.,2025-06-30,2025-07-07,study,1,100,30,true,2025-06-30 14:22:45.738845+00,2025-06-30 14:22:45.738845+00
+12,Conhecimento Bíblico,Complete 2 estudos bíblicos para expandir seu entendimento.,2025-06-30,2025-07-07,study,2,150,50,true,2025-06-30 14:22:45.738845+00,2025-06-30 14:22:45.738845+00
