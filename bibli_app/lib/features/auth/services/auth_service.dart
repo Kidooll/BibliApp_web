@@ -18,7 +18,14 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    await supabase.auth.signInWithPassword(email: email, password: password);
+    final response = await supabase.auth
+        .signInWithPassword(email: email, password: password);
+
+    // Registrar último login/atividade para uso em status de usuário
+    final user = response.user;
+    if (user != null) {
+      await _markLastLogin(user.id);
+    }
   }
 
   Future<void> signOut() async {
@@ -122,6 +129,29 @@ class AuthService {
       }
     } catch (e) {
       print('Erro ao verificar/criar perfil do usuário: $e');
+    }
+  }
+
+  Future<void> _markLastLogin(String userId) async {
+    final today = DateTime.now().toIso8601String().split('T')[0];
+
+    // Atualiza user_stats.last_activity_date (já existe na base) e garante row
+    try {
+      await supabase.from('user_stats').upsert({
+        'user_id': userId,
+        'last_activity_date': today,
+      }, onConflict: 'user_id');
+    } catch (e) {
+      print('Erro ao registrar último login em user_stats: $e');
+    }
+
+    // Opcional: manter um carimbo em user_profiles para consultas rápidas
+    try {
+      await supabase
+          .from('user_profiles')
+          .update({'last_weekly_reset': today}).eq('id', userId);
+    } catch (e) {
+      // Silenciar falha; campo é opcional para essa finalidade
     }
   }
 }

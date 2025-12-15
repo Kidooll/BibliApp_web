@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:percent_indicator/percent_indicator.dart';
 import 'package:badges/badges.dart' as badges;
-import '../../../features/gamification/services/gamification_service.dart';
-import '../../../features/gamification/models/level.dart';
-import '../../../features/gamification/models/achievement.dart';
-import '../../../features/gamification/models/user_stats.dart';
-import '../services/missions_service.dart';
+import 'package:percent_indicator/percent_indicator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../features/gamification/models/achievement.dart';
+import '../../../features/gamification/models/level.dart';
+import '../../../features/gamification/models/user_stats.dart';
+import '../../../features/gamification/services/gamification_service.dart';
+import '../services/missions_service.dart';
 import '../services/weekly_challenges_service.dart';
 
 class MissionsScreen extends StatefulWidget {
@@ -30,6 +30,8 @@ class _MissionsScreenState extends State<MissionsScreen>
   List<Achievement> _unlockedAchievements = [];
   UserStats? _userStats;
   bool _isLoading = true;
+  List<Level> _levels = [];
+  int _coins = 0;
   List<Map<String, dynamic>> _todayMissions = [];
   late MissionsService _missionsService;
   late WeeklyChallengesService _weeklyService;
@@ -108,6 +110,8 @@ class _MissionsScreenState extends State<MissionsScreen>
       final unlockedAchievements =
           await GamificationService.getUserAchievements();
       final userStats = await GamificationService.getUserStats();
+      final levels = await _fetchLevels();
+      final coins = await _fetchCoins();
 
       setState(() {
         _totalXp = totalXp;
@@ -116,6 +120,8 @@ class _MissionsScreenState extends State<MissionsScreen>
         _achievements = achievements;
         _unlockedAchievements = unlockedAchievements;
         _userStats = userStats;
+        _levels = levels;
+        _coins = coins;
         _todayMissions = todayMissions;
         _weeklyProgress = weekly;
         _upcoming = upcoming;
@@ -133,81 +139,63 @@ class _MissionsScreenState extends State<MissionsScreen>
     }
   }
 
+  Future<List<Level>> _fetchLevels() async {
+    try {
+      final res = await Supabase.instance.client
+          .from('levels')
+          .select()
+          .order('level_number');
+      return List<Map<String, dynamic>>.from(res)
+          .map((e) => Level.fromJson(e))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<int> _fetchCoins() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return 0;
+      final res = await Supabase.instance.client
+          .from('user_profiles')
+          .select('coins')
+          .eq('id', user.id)
+          .maybeSingle();
+      return (res?['coins'] as int?) ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         child: _isLoading
             ? const Center(
                 child: CircularProgressIndicator(color: Color(0xFF005954)),
               )
-            : CustomScrollView(
-                slivers: [
-                  // App Bar
-                  SliverAppBar(
-                    expandedHeight: 200,
-                    floating: false,
-                    pinned: true,
-                    backgroundColor: const Color(0xFF005954),
-                    flexibleSpace: FlexibleSpaceBar(
-                      title: const Text(
-                        'Missões & Conquistas',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      background: Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFF005954), Color(0xFF007A6B)],
-                          ),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.emoji_events,
-                            size: 80,
-                            color: Colors.white54,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Conteúdo
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Card de Progresso
-                          _buildProgressCard(),
-                          const SizedBox(height: 24),
-
-                          // Estatísticas
-                          _buildStatsCard(),
-                          const SizedBox(height: 24),
-
-                          // Conquistas
-                          _buildAchievementsSection(),
-                          const SizedBox(height: 24),
-                          _buildWeeklyChallengesSection(),
-                          const SizedBox(height: 24),
-                          _buildWeeklyUpcomingSection(),
-                          const SizedBox(height: 24),
-                          _buildWeeklyRecentSection(),
-                          const SizedBox(height: 24),
-                          _buildDailyMissionsSection(),
-                        ],
-                      ),
-                    ),
-                  ),
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                  _buildHeaderCard(),
+                  const SizedBox(height: 12),
+                  _buildXpCard(),
+                  const SizedBox(height: 16),
+                  _buildMilestoneList(),
+                  const SizedBox(height: 16),
+                  _buildDailyMissionsSection(),
+                  const SizedBox(height: 16),
+                  _buildWeeklyChallengesSection(),
+                  const SizedBox(height: 16),
+                  _buildAchievementsRecentSection(),
                 ],
               ),
+            ),
       ),
     );
   }
@@ -792,6 +780,415 @@ class _MissionsScreenState extends State<MissionsScreen>
             }).toList(),
           ),
       ],
+    );
+  }
+
+  Widget _buildHeaderCard() {
+    final user = Supabase.instance.client.auth.currentUser;
+    final displayName = user?.userMetadata?['name'] ?? user?.email ?? 'Usuário';
+    final initials = _getInitials(displayName);
+    final levelNumber = _currentLevel?.levelNumber ?? 0;
+    final achievementsCount = _unlockedAchievements.length;
+    final streak = _userStats?.currentStreakDays ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0D6B68), Color(0xFF0B5B53)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 34,
+            backgroundColor: Colors.white.withOpacity(0.9),
+            child: Text(
+              initials,
+              style: const TextStyle(
+                color: Color(0xFF0B5B53),
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            displayName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Inactive Member',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildStatMini(label: 'Nível', value: '$levelNumber'),
+              Container(width: 1, height: 24, color: Colors.white24),
+              _buildStatMini(label: 'Moedas', value: '$_coins'),
+              Container(width: 1, height: 24, color: Colors.white24),
+              _buildStatMini(
+                label: 'Conquistas',
+                value: '$achievementsCount',
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Streak atual: $streak dias',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatMini({required String label, required String value}) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.8),
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildXpCard() {
+    final levelName = _currentLevel?.levelName ?? 'Buscador';
+    final currentLevelNumber = _currentLevel?.levelNumber ?? 1;
+    final thresholds = _levelThresholds();
+
+    // Garantir lista ordenada
+    thresholds.sort((a, b) => (a['level'] as int).compareTo(b['level'] as int));
+    int idx = thresholds.indexWhere((t) => (t['level'] ?? 0) == currentLevelNumber);
+    if (idx == -1) {
+      idx = thresholds.indexWhere((t) => (t['level'] ?? 0) > currentLevelNumber);
+    }
+    if (idx == -1) idx = thresholds.length - 1;
+
+    final prevThreshold = idx > 0 ? thresholds[idx - 1]['xp'] as int : 0;
+    // Próximo limiar: usa entrada seguinte; se não houver, usa XP atual + xpToNextLevel
+    int nextThreshold;
+    if (idx + 1 < thresholds.length) {
+      nextThreshold = thresholds[idx + 1]['xp'] as int;
+    } else {
+      final fallbackDelta = _xpToNextLevel > 0 ? _xpToNextLevel : 200;
+      nextThreshold = _totalXp + fallbackDelta;
+    }
+
+    final totalForLevel = (nextThreshold - prevThreshold).clamp(1, 1 << 31);
+    final progress =
+        ((_totalXp - prevThreshold) / totalForLevel).clamp(0.0, 1.0).toDouble();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F6A65),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'XP Total',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  levelName,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '$_totalXp/$nextThreshold  XP',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: Colors.white24,
+              valueColor: const AlwaysStoppedAnimation(Color(0xFFAEE0DB)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMilestoneList() {
+    final milestones = _levels.isNotEmpty ? _levels : _staticMilestones();
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF6EA9A8),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Center(
+            child: Text(
+              'Caminhada da Fé',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...milestones.map(
+            (dynamic m) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '🔥 Nível ${m is Level ? m.levelNumber : (m as Map<String, dynamic>)['level']} – ${m is Level ? m.levelName : (m as Map<String, dynamic>)['title']}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          m is Level
+                              ? (m.description ?? '')
+                              : ((m as Map<String, dynamic>)['description']
+                                      as String? ??
+                                  ''),
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Map<String, String>> _staticMilestones() {
+    return [
+      {
+        'level': '1',
+        'title': 'Buscador',
+        'description': 'Descrição: Iniciou a jornada em busca de Deus.',
+      },
+      {
+        'level': '5',
+        'title': 'Discípulo',
+        'description':
+            'Descrição: Comprometido com o aprendizado e a prática diária.',
+      },
+      {
+        'level': '10',
+        'title': 'Guardião da Fé',
+        'description': 'Descrição: Defensor da verdade e fiel à Palavra.',
+      },
+      {
+        'level': '15',
+        'title': 'Sábio Espiritual',
+        'description': 'Descrição: Conhecedor das Escrituras.',
+      },
+      {
+        'level': '20',
+        'title': 'Mensageiro Divino',
+        'description':
+            'Descrição: Compartilha a Palavra com ousadia e amor.',
+      },
+    ];
+  }
+
+  String _getInitials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length == 1) {
+      return parts.first.isNotEmpty ? parts.first[0].toUpperCase() : 'U';
+    }
+    final first = parts.first.isNotEmpty ? parts.first[0].toUpperCase() : '';
+    final last = parts.last.isNotEmpty ? parts.last[0].toUpperCase() : '';
+    final initials = '$first$last';
+    return initials.isNotEmpty ? initials : 'U';
+  }
+
+  List<Map<String, int>> _levelThresholds() {
+    if (_levels.isNotEmpty) {
+      return [
+        {'level': 0, 'xp': 0},
+        ..._levels.map((l) => {'level': l.levelNumber, 'xp': l.xpRequired}),
+      ];
+    }
+    // fallback
+    return [
+      {'level': 0, 'xp': 0},
+      {'level': 1, 'xp': 150},
+      {'level': 2, 'xp': 400},
+      {'level': 3, 'xp': 750},
+      {'level': 4, 'xp': 1200},
+      {'level': 5, 'xp': 1700},
+    ];
+  }
+
+  Widget _buildAchievementsRecentSection() {
+    if (_unlockedAchievements.isEmpty) return const SizedBox.shrink();
+    final recent = [..._unlockedAchievements]
+      ..sort((a, b) => (b.unlockedAt ?? DateTime(1970))
+          .compareTo(a.unlockedAt ?? DateTime(1970)));
+    final top3 = recent.take(3).toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Conquistas Recentes',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Color(0xFF005954),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...top3.map(
+            (a) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.emoji_events, color: Color(0xFF005954)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          a.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        if (a.unlockedAt != null)
+                          Text(
+                            'Desbloqueada em ${_formatDate(a.unlockedAt!)}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '+${a.xpReward} XP',
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

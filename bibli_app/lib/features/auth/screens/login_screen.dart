@@ -269,7 +269,14 @@ class _LoginScreenState extends State<LoginScreen> {
           email: _emailController.text,
           password: _passwordController.text,
         );
-        // Navegação será tratada automaticamente pelo StreamBuilder no app.dart
+        // Redirecionar para a Home após login bem-sucedido
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/home',
+            (route) => false,
+          );
+        }
       } on AuthException catch (e) {
         ScaffoldMessenger.of(
           context,

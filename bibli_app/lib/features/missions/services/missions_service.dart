@@ -129,7 +129,7 @@ class MissionsService {
 
     final mission = await _supabase
         .from('daily_missions')
-        .select('id')
+        .select('id, xp_reward, title')
         .eq('code', code)
         .single();
 
@@ -143,15 +143,28 @@ class MissionsService {
         .single();
     if (existing['status'] == 'claimed') return;
 
+    // Marca como concluída e já registra como resgatada para evitar double-claim
     await _supabase
         .from('user_missions')
         .update({
-          'status': 'completed',
+          'status': 'claimed',
           'completed_at': DateTime.now().toIso8601String(),
+          'claimed_at': DateTime.now().toIso8601String(),
         })
         .eq('user_id', user.id)
         .eq('mission_id', mission['id'])
         .eq('mission_date', today);
+
+    final xpReward = mission['xp_reward'] as int? ?? 0;
+    if (xpReward > 0) {
+      await GamificationService.addXp(
+        actionName: 'mission_claimed',
+        xpAmount: xpReward,
+        description: 'Missão diária: ${mission['title'] ?? code}',
+        relatedId: mission['id'] as int?,
+      );
+      await GamificationService.forceSync();
+    }
   }
 
   Future<void> incrementMissionByCode(String code, {int step = 1}) async {
