@@ -38,6 +38,8 @@ dependencies:
   share_plus: ^7.2.1
   confetti: ^0.7.0
   http: ^1.2.2
+  just_audio: ^0.9.42
+  audio_session: ^0.1.25
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
@@ -49,10 +51,44 @@ dev_dependencies:
 
 
 flutter:
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins/Poppins-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/Poppins/Poppins-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/Poppins/Poppins-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Poppins/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins/Poppins-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Poppins/Poppins-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Poppins/Poppins-Black.ttf
+          weight: 900
+    - family: Arimo
+      fonts:
+        - asset: assets/fonts/Arimo/static/Arimo-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Arimo/static/Arimo-Bold.ttf
+          weight: 700
   assets:
     - assets/images/
     - assets/images/signup_and_signin/image.png
     - assets/images/google_logo.png
+    - assets/data/
+    # Sleep section (explicit folders to avoid asset-manifest cache issues)
+    - assets/images/welcome_sleep_page/
+    - assets/images/sleep_page/
+    - assets/images/sleep_music_page/
+    - assets/images/play_option_page/
+    - assets/images/music/
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

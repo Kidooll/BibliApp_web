@@ -65,8 +65,10 @@ class DevotionalService {
       if (user == null) return false;
 
       // Verificar se já foi lido hoje
-      final today = DateTime.now().toIso8601String().split('T')[0];
-      final alreadyRead = await _hasReadToday(devotionalId, user.id, today);
+      final todayUtc = DateTime.now().toUtc().toIso8601String().split('T')[0];
+      final alreadyRead = await _hasReadToday(devotionalId, user.id, todayUtc);
+      final firstReadOfDay =
+          !(await _hasAnyDevotionalReadToday(user.id, todayUtc));
 
       if (alreadyRead) {
         print(
@@ -80,7 +82,7 @@ class DevotionalService {
         await _supabase.from('read_devotionals').insert({
           'devotional_id': devotionalId,
           'user_profile_id': user.id,
-          'read_at': DateTime.now().toIso8601String(),
+          'read_at': DateTime.now().toUtc().toIso8601String(),
         });
       } on PostgrestException catch (e) {
         // Tratamento de unicidade (unique_violation)
@@ -94,7 +96,10 @@ class DevotionalService {
       }
 
       // Integrar com sistema de gamificação (só se não foi lido hoje)
-      await GamificationService.markDevotionalAsRead(devotionalId);
+      await GamificationService.markDevotionalAsRead(
+        devotionalId,
+        firstReadOfDay: firstReadOfDay,
+      );
 
       // Completar missão diária: ler devocional de hoje
       try {
@@ -116,6 +121,20 @@ class DevotionalService {
     }
   }
 
+  Future<bool> _hasAnyDevotionalReadToday(String userId, String today) async {
+    try {
+      final res = await _supabase
+          .from('read_devotionals')
+          .select('id')
+          .eq('user_profile_id', userId)
+          .eq('read_date', today)
+          .limit(1);
+      return res.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Verifica se o devocional já foi lido hoje
   Future<bool> _hasReadToday(
     int devotionalId,
@@ -125,11 +144,10 @@ class DevotionalService {
     try {
       final response = await _supabase
           .from('read_devotionals')
-          .select('read_at')
+          .select('id')
           .eq('devotional_id', devotionalId)
           .eq('user_profile_id', userId)
-          .gte('read_at', '$today 00:00:00')
-          .lte('read_at', '$today 23:59:59')
+          .eq('read_date', today)
           .maybeSingle();
 
       return response != null;

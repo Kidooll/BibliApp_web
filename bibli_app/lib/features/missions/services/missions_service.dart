@@ -16,7 +16,7 @@ class MissionsService {
           .select()
           .eq('is_active', true);
 
-      final today = DateTime.now().toIso8601String().split('T')[0];
+      final today = _todayDate();
 
       // Garantir um registro em user_missions para cada missão ativa hoje
       for (final m in missions) {
@@ -37,7 +37,7 @@ class MissionsService {
       final user = _supabase.auth.currentUser;
       if (user == null) return [];
 
-      final today = DateTime.now().toIso8601String().split('T')[0];
+      final today = _todayDate();
 
       final response = await _supabase
           .from('user_missions')
@@ -104,7 +104,7 @@ class MissionsService {
   Future<void> _ensureTodayMissionByCode(String code) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
-    final today = DateTime.now().toIso8601String().split('T')[0];
+    final today = _todayDate();
 
     final mission = await _supabase
         .from('daily_missions')
@@ -123,7 +123,7 @@ class MissionsService {
   Future<void> completeMissionByCode(String code) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
-    final today = DateTime.now().toIso8601String().split('T')[0];
+    final today = _todayDate();
 
     await _ensureTodayMissionByCode(code);
 
@@ -170,7 +170,7 @@ class MissionsService {
   Future<void> incrementMissionByCode(String code, {int step = 1}) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
-    final today = DateTime.now().toIso8601String().split('T')[0];
+    final today = _todayDate();
 
     await _ensureTodayMissionByCode(code);
 
@@ -202,5 +202,9 @@ class MissionsService {
           if (isCompleted) 'completed_at': DateTime.now().toIso8601String(),
         })
         .eq('id', row['id']);
+  }
+
+  String _todayDate() {
+    return DateTime.now().toUtc().toIso8601String().split('T')[0];
   }
 }

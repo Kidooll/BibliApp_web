@@ -10,6 +10,7 @@ class GamificationService {
   static const String _supabase = 'supabase';
   static const String _cacheKey = 'gamification_cache';
   static const String _lastSyncKey = 'last_sync_timestamp';
+  static const String _streakRepairKey = 'streak_repair_last_day';
 
   // Event bus simples para notificar mudanças (ex.: XP atualizado)
   static final StreamController<String> _eventController =
@@ -160,26 +161,13 @@ class GamificationService {
   }
 
   // Marcar devocional como lido
-  static Future<void> markDevotionalAsRead(int devotionalId) async {
+  // OBS: esta função deve ser chamada após o INSERT em read_devotionals ter ocorrido com sucesso.
+  static Future<void> markDevotionalAsRead(
+    int devotionalId, {
+    required bool firstReadOfDay,
+  }) async {
     try {
       await _syncIfNeeded();
-
-      // Verificar se já leu este devocional hoje
-      final today = DateTime.now().toIso8601String().split('T')[0];
-      final alreadyReadToday = await _hasReadDevotionalToday(
-        devotionalId,
-        today,
-      );
-
-      if (alreadyReadToday) {
-        print(
-          'Devocional já lido hoje: $devotionalId - Streak não será atualizada',
-        );
-        return;
-      }
-
-      // Verificar se já leu algum devocional hoje (para daily bonus)
-      final hasReadAnyDevotionalToday = await _hasReadAnyDevotionalToday(today);
 
       // Adicionar XP por ler devocional
       await addXp(
@@ -190,7 +178,7 @@ class GamificationService {
       );
 
       // Verificar se é primeira leitura do dia (qualquer devocional)
-      if (!hasReadAnyDevotionalToday) {
+      if (firstReadOfDay) {
         await addXp(
           actionName: 'daily_bonus',
           xpAmount: 5,
@@ -198,8 +186,9 @@ class GamificationService {
         );
       }
 
-      // Atualizar streak (só se não leu hoje)
-      await _updateStreak();
+      // Atualizar streak/estatísticas
+      await _updateStreak(firstReadOfDay: firstReadOfDay);
+      _emitEvent('streak_changed');
 
       await _saveCache();
     } catch (e) {
@@ -207,90 +196,109 @@ class GamificationService {
     }
   }
 
-  // Verificar se o usuário já leu este devocional hoje
-  static Future<bool> _hasReadDevotionalToday(
-    int devotionalId,
-    String today,
-  ) async {
+  /// Recalcula a streak a partir do histórico (read_devotionals) e corrige
+  /// `user_stats/reading_streaks` caso estejam divergentes.
+  ///
+  /// Útil para "curar" streaks travadas por problemas antigos ou triggers.
+  static Future<void> repairStreakFromHistoryIfNeeded() async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return false;
+      if (user == null) return;
 
-      final response = await Supabase.instance.client
-          .from('read_devotionals')
-          .select('read_at')
-          .eq('devotional_id', devotionalId)
-          .eq('user_profile_id', user.id)
-          .gte('read_at', '$today 00:00:00')
-          .lte('read_at', '$today 23:59:59')
-          .maybeSingle();
+      // Evitar fazer reparo repetidamente no mesmo dia (custo de query).
+      final todayUtc = DateTime.now().toUtc();
+      final todayKey = _dateKeyUtc(todayUtc);
+      if (_localCache[_streakRepairKey] == todayKey) return;
 
-      return response != null;
+      await _syncIfNeeded();
+      final existing = await getUserStats();
+
+      final days = await _fetchReadDaysUtc(limit: 120);
+      if (days.isEmpty) {
+        _localCache[_streakRepairKey] = todayKey;
+        await _saveCache();
+        return;
+      }
+
+      final computed = _calculateCurrentStreakFromDayKeys(days, todayUtc);
+      final lastReadKey = _maxDayKey(days);
+
+      final current = existing?.currentStreakDays ?? 0;
+      if (computed == current) {
+        _localCache[_streakRepairKey] = todayKey;
+        await _saveCache();
+        return;
+      }
+
+      final longest = existing == null
+          ? computed
+          : (computed > existing.longestStreakDays
+              ? computed
+              : existing.longestStreakDays);
+
+      // Persistir correção no servidor
+      await Supabase.instance.client.from('user_stats').upsert({
+        'user_id': user.id,
+        'current_streak_days': computed,
+        'longest_streak_days': longest,
+        'last_activity_date': lastReadKey,
+        'last_sync_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'user_id');
+
+      await Supabase.instance.client.from('reading_streaks').upsert({
+        'user_profile_id': user.id,
+        'current_streak_days': computed,
+        'longest_streak_days': longest,
+        'last_active_date': lastReadKey,
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'user_profile_id');
+
+      // Atualizar cache (evita inconsistência por campos obrigatórios como `id/created_at`)
+      await forceSync();
+      _localCache[_streakRepairKey] = todayKey;
+      await _saveCache();
+      _emitEvent('streak_changed');
     } catch (e) {
-      print('Erro ao verificar se devocional foi lido hoje: $e');
-      return false;
-    }
-  }
-
-  // Verificar se o usuário já leu algum devocional hoje
-  static Future<bool> _hasReadAnyDevotionalToday(String today) async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return false;
-
-      final response = await Supabase.instance.client
-          .from('read_devotionals')
-          .select('read_at')
-          .eq('user_profile_id', user.id)
-          .gte('read_at', '$today 00:00:00')
-          .lte('read_at', '$today 23:59:59')
-          .limit(1);
-
-      return response.isNotEmpty;
-    } catch (e) {
-      print('Erro ao verificar se algum devocional foi lido hoje: $e');
-      return false;
+      print('Erro ao reparar streak: $e');
     }
   }
 
   // Atualizar streak de leitura
-  static Future<void> _updateStreak() async {
+  static Future<void> _updateStreak({required bool firstReadOfDay}) async {
     try {
-      final userStats = await getUserStats();
-      if (userStats == null) return;
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
 
-      final today = DateTime.now();
-      final lastActivity = userStats.lastActivityDate;
+      UserStats? userStats = await getUserStats();
+      if (userStats == null) {
+        // Garantir linha em user_stats para não falhar em novas leituras
+        await Supabase.instance.client.from('user_stats').upsert({
+          'user_id': user.id,
+          'total_devotionals_read': 0,
+          'current_streak_days': 0,
+          'longest_streak_days': 0,
+          'last_activity_date': null,
+          'last_sync_at': DateTime.now().toIso8601String(),
+        }, onConflict: 'user_id');
+        await forceSync();
+        userStats = await getUserStats();
+        if (userStats == null) return;
+      }
+
+      final nowUtc = DateTime.now().toUtc();
+      final today = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day);
 
       int newStreak = userStats.currentStreakDays;
-      int totalDevotionalsRead = userStats.totalDevotionalsRead;
+      final totalDevotionalsRead = userStats.totalDevotionalsRead + 1;
 
-      if (lastActivity == null) {
-        // Primeira atividade do usuário
+      // Streak só muda na primeira leitura do dia; mas recalculamos pelo histórico para corrigir valores "travados".
+      if (firstReadOfDay) {
+        newStreak = await _calculateCurrentStreakFromHistory(
+          today,
+          includeTodayIfMissing: true,
+        );
+      } else if (userStats.lastActivityDate == null) {
         newStreak = 1;
-        totalDevotionalsRead += 1;
-      } else {
-        final difference = today.difference(lastActivity).inDays;
-
-        if (difference == 1) {
-          // Dia consecutivo
-          newStreak++;
-          totalDevotionalsRead += 1;
-        } else if (difference > 1) {
-          // Quebrou o streak
-          newStreak = 1;
-          totalDevotionalsRead += 1;
-        } else if (difference == 0) {
-          // Mesmo dia - verificar se é primeira leitura do dia
-          final todayStr = today.toIso8601String().split('T')[0];
-          final hasReadToday = await _hasReadAnyDevotionalToday(todayStr);
-
-          if (!hasReadToday) {
-            // Primeira leitura do dia
-            totalDevotionalsRead += 1;
-          }
-          // Se já leu hoje, não incrementar nada
-        }
       }
 
       // Verificar bônus de streak (só se streak aumentou)
@@ -329,11 +337,150 @@ class GamificationService {
       _localCache['user_stats'] = updatedStats.toJson();
       await _saveCache();
 
+      final todayStr = today.toIso8601String().split('T')[0];
+
+      // Persistir no Supabase para refletir na Home/Missões
+      await Supabase.instance.client.from('user_stats').upsert({
+        'user_id': user.id,
+        'total_devotionals_read': totalDevotionalsRead,
+        'current_streak_days': newStreak,
+        'longest_streak_days': newStreak > userStats.longestStreakDays
+            ? newStreak
+            : userStats.longestStreakDays,
+        'last_activity_date': todayStr,
+        'last_sync_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'user_id');
+
+      // Atualizar leitura semanal/contagem simples na user_profiles
+      await Supabase.instance.client.from('user_profiles').upsert({
+        'id': user.id,
+        'total_devotionals_read': totalDevotionalsRead,
+        'current_level': await getCurrentLevel(),
+        'total_xp': await getTotalXp(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'id');
+
+      // Persistir streak na tabela reading_streaks (para consumo da Home)
+      await Supabase.instance.client.from('reading_streaks').upsert({
+        'user_profile_id': user.id,
+        'current_streak_days': newStreak,
+        'longest_streak_days': newStreak > userStats.longestStreakDays
+            ? newStreak
+            : userStats.longestStreakDays,
+        'last_active_date': todayStr,
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'user_profile_id');
+
       print(
         'Streak atualizado: $newStreak dias, Total lidos: $totalDevotionalsRead',
       );
     } catch (e) {
       print('Erro ao atualizar streak: $e');
+    }
+  }
+
+  static String _dateKeyUtc(DateTime utcDate) {
+    final d = DateTime.utc(utcDate.year, utcDate.month, utcDate.day);
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  static DateTime? _parseDateOnlyUtc(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is DateTime) {
+      return DateTime.utc(raw.year, raw.month, raw.day);
+    }
+    if (raw is String) {
+      // Prefer date-only: YYYY-MM-DD
+      final parts = raw.split('-');
+      if (parts.length == 3 && parts[0].length == 4) {
+        final y = int.tryParse(parts[0]);
+        final m = int.tryParse(parts[1]);
+        final d = int.tryParse(parts[2].split('T').first);
+        if (y != null && m != null && d != null) {
+          return DateTime.utc(y, m, d);
+        }
+      }
+      final dt = DateTime.tryParse(raw);
+      if (dt != null) {
+        final utc = dt.toUtc();
+        return DateTime.utc(utc.year, utc.month, utc.day);
+      }
+    }
+    return null;
+  }
+
+  static Future<Set<String>> _fetchReadDaysUtc({int limit = 60}) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return <String>{};
+    try {
+      final res = await Supabase.instance.client
+          .from('read_devotionals')
+          .select('read_date,read_at')
+          .eq('user_profile_id', user.id)
+          .order('read_at', ascending: false)
+          .limit(limit);
+      final days = <String>{};
+      for (final row in res) {
+        final dt = _parseDateOnlyUtc(row['read_date']) ??
+            _parseDateOnlyUtc(row['read_at']);
+        if (dt == null) continue;
+        days.add(_dateKeyUtc(dt));
+      }
+      return days;
+    } catch (_) {
+      return <String>{};
+    }
+  }
+
+  static String _maxDayKey(Set<String> keys) {
+    String? maxKey;
+    for (final k in keys) {
+      if (maxKey == null || k.compareTo(maxKey) > 0) {
+        maxKey = k;
+      }
+    }
+    return maxKey ?? _dateKeyUtc(DateTime.now().toUtc());
+  }
+
+  static int _calculateCurrentStreakFromDayKeys(
+    Set<String> dayKeys,
+    DateTime todayUtc,
+  ) {
+    if (dayKeys.isEmpty) return 0;
+
+    final today = DateTime.utc(todayUtc.year, todayUtc.month, todayUtc.day);
+    final lastKey = _maxDayKey(dayKeys);
+    final lastDate = _parseDateOnlyUtc(lastKey);
+    if (lastDate == null) return 0;
+
+    final diffDays = today.difference(lastDate).inDays;
+    if (diffDays >= 2) return 0; // streak quebrada
+
+    int streak = 0;
+    DateTime cursor = lastDate;
+    while (true) {
+      final k = _dateKeyUtc(cursor);
+      if (!dayKeys.contains(k)) break;
+      streak++;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    return streak.clamp(0, 3650);
+  }
+
+  static Future<int> _calculateCurrentStreakFromHistory(
+    DateTime todayUtcDate, {
+    required bool includeTodayIfMissing,
+  }) async {
+    try {
+      final todayKey = _dateKeyUtc(todayUtcDate);
+      final days = await _fetchReadDaysUtc(limit: 120);
+      if (includeTodayIfMissing) {
+        days.add(todayKey);
+      }
+      final computed = _calculateCurrentStreakFromDayKeys(days, todayUtcDate);
+      return includeTodayIfMissing ? computed.clamp(1, 3650) : computed;
+    } catch (_) {
+      return includeTodayIfMissing ? 1 : 0;
     }
   }
 
@@ -532,6 +679,28 @@ class GamificationService {
     }
 
     return parsed.where((a) => a.isUnlocked).toList();
+  }
+
+  /// Retorna as últimas transações de XP para exibir histórico (limite padrão: 3)
+  static Future<List<Map<String, dynamic>>> getRecentXpTransactions({
+    int limit = 3,
+  }) async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return [];
+
+      final res = await Supabase.instance.client
+          .from('xp_transactions')
+          .select('xp_amount, transaction_type, description, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', ascending: false)
+          .limit(limit);
+
+      return List<Map<String, dynamic>>.from(res);
+    } catch (e) {
+      print('Erro ao buscar histórico de XP: $e');
+      return [];
+    }
   }
 
   // Métodos auxiliares para Supabase

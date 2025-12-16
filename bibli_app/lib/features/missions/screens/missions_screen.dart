@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../features/home/services/home_service.dart';
 import '../../../features/gamification/models/achievement.dart';
 import '../../../features/gamification/models/level.dart';
 import '../../../features/gamification/models/user_stats.dart';
 import '../../../features/gamification/services/gamification_service.dart';
+import '../../../features/quotes/screens/quote_screen.dart';
 import '../services/missions_service.dart';
 import '../services/weekly_challenges_service.dart';
 
@@ -22,6 +25,9 @@ class _MissionsScreenState extends State<MissionsScreen>
   late AnimationController _levelUpController;
   late Animation<double> _xpAnimation;
   late Animation<double> _levelUpAnimation;
+  StreamSubscription<String>? _gamificationSub;
+  bool _isRefreshing = false;
+  bool _isDisposed = false;
 
   Level? _currentLevel;
   int _totalXp = 0;
@@ -32,7 +38,10 @@ class _MissionsScreenState extends State<MissionsScreen>
   bool _isLoading = true;
   List<Level> _levels = [];
   int _coins = 0;
+  String? _username;
+  Map<String, String?> _todaysQuote = {};
   List<Map<String, dynamic>> _todayMissions = [];
+  List<Map<String, dynamic>> _recentXp = [];
   late MissionsService _missionsService;
   late WeeklyChallengesService _weeklyService;
   List<Map<String, dynamic>> _weeklyProgress = [];
@@ -62,8 +71,8 @@ class _MissionsScreenState extends State<MissionsScreen>
     _loadData();
 
     // Feedback de conquistas
-    GamificationService.events.listen((event) {
-      if (!mounted) return;
+    _gamificationSub = GamificationService.events.listen((event) {
+      if (!mounted || _isDisposed) return;
       if (event == 'achievement_unlocked') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -71,16 +80,22 @@ class _MissionsScreenState extends State<MissionsScreen>
             duration: Duration(seconds: 2),
           ),
         );
-        // Iniciar uma pequena animação visual (reutilizando _levelUpController)
         _levelUpController.forward(from: 0);
+      }
+      if (event == 'xp_changed' ||
+          event == 'level_up' ||
+          event == 'streak_changed') {
+        _refreshGamificationData();
       }
     });
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _xpAnimationController.dispose();
     _levelUpController.dispose();
+    _gamificationSub?.cancel();
     super.dispose();
   }
 
@@ -93,6 +108,7 @@ class _MissionsScreenState extends State<MissionsScreen>
       // Inicializar gamificação
       await GamificationService.initialize();
       await GamificationService.forceSync();
+      await GamificationService.repairStreakFromHistoryIfNeeded();
 
       _missionsService = MissionsService(Supabase.instance.client);
       _weeklyService = WeeklyChallengesService(Supabase.instance.client);
@@ -101,6 +117,9 @@ class _MissionsScreenState extends State<MissionsScreen>
       final weekly = await _weeklyService.getWeeklyChallengesWithProgress();
       final upcoming = await _weeklyService.getUpcomingChallenges();
       final recent = await _weeklyService.getRecentChallenges();
+      final todaysQuote = await HomeService(
+        Supabase.instance.client,
+      ).getTodaysQuote();
 
       // Carregar dados
       final totalXp = await GamificationService.getTotalXp();
@@ -112,6 +131,8 @@ class _MissionsScreenState extends State<MissionsScreen>
       final userStats = await GamificationService.getUserStats();
       final levels = await _fetchLevels();
       final coins = await _fetchCoins();
+      final recentXp = await GamificationService.getRecentXpTransactions();
+      final username = await _fetchUsername();
 
       setState(() {
         _totalXp = totalXp;
@@ -122,6 +143,9 @@ class _MissionsScreenState extends State<MissionsScreen>
         _userStats = userStats;
         _levels = levels;
         _coins = coins;
+        _recentXp = recentXp;
+        _username = username;
+        _todaysQuote = todaysQuote;
         _todayMissions = todayMissions;
         _weeklyProgress = weekly;
         _upcoming = upcoming;
@@ -145,9 +169,9 @@ class _MissionsScreenState extends State<MissionsScreen>
           .from('levels')
           .select()
           .order('level_number');
-      return List<Map<String, dynamic>>.from(res)
-          .map((e) => Level.fromJson(e))
-          .toList();
+      return List<Map<String, dynamic>>.from(
+        res,
+      ).map((e) => Level.fromJson(e)).toList();
     } catch (_) {
       return [];
     }
@@ -168,6 +192,60 @@ class _MissionsScreenState extends State<MissionsScreen>
     }
   }
 
+  Future<void> _refreshGamificationData() async {
+    if (_isRefreshing || _isDisposed) return;
+    _isRefreshing = true;
+    try {
+      await GamificationService.forceSync();
+      final totalXp = await GamificationService.getTotalXp();
+      final currentLevel = await GamificationService.getCurrentLevelInfo();
+      final xpToNextLevel = await GamificationService.getXpToNextLevel();
+      final unlockedAchievements =
+          await GamificationService.getUserAchievements();
+      final userStats = await GamificationService.getUserStats();
+      final recentXp = await GamificationService.getRecentXpTransactions();
+      final coins = await _fetchCoins();
+      final username = await _fetchUsername();
+
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _totalXp = totalXp;
+          _currentLevel = currentLevel;
+          _xpToNextLevel = xpToNextLevel;
+          _unlockedAchievements = unlockedAchievements;
+          _userStats = userStats;
+          _recentXp = recentXp;
+          _coins = coins;
+          _username = username;
+        });
+        try {
+          _xpAnimationController.forward(from: 0);
+        } catch (_) {
+          // Controller pode estar disposed em corrida de navegação; ignore.
+        }
+      }
+    } catch (e) {
+      print('Erro ao atualizar gamificação: $e');
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  Future<String?> _fetchUsername() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return null;
+      final res = await Supabase.instance.client
+          .from('user_profiles')
+          .select('username')
+          .eq('id', user.id)
+          .maybeSingle();
+      return res?['username'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -182,20 +260,24 @@ class _MissionsScreenState extends State<MissionsScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                  _buildHeaderCard(),
-                  const SizedBox(height: 12),
-                  _buildXpCard(),
-                  const SizedBox(height: 16),
-                  _buildMilestoneList(),
-                  const SizedBox(height: 16),
-                  _buildDailyMissionsSection(),
-                  const SizedBox(height: 16),
-                  _buildWeeklyChallengesSection(),
-                  const SizedBox(height: 16),
-                  _buildAchievementsRecentSection(),
-                ],
+                    _buildHeaderCard(),
+                    const SizedBox(height: 12),
+                    _buildXpCard(),
+                    const SizedBox(height: 16),
+                    _buildMilestoneList(),
+                    const SizedBox(height: 16),
+                    _buildXpHistory(),
+                    const SizedBox(height: 16),
+                    _buildDailyMissionsSection(),
+                    const SizedBox(height: 16),
+                    _buildWeeklyChallengesSection(),
+                    const SizedBox(height: 16),
+                    _buildShareCta(),
+                    const SizedBox(height: 16),
+                    _buildAchievementsRecentSection(),
+                  ],
+                ),
               ),
-            ),
       ),
     );
   }
@@ -785,11 +867,13 @@ class _MissionsScreenState extends State<MissionsScreen>
 
   Widget _buildHeaderCard() {
     final user = Supabase.instance.client.auth.currentUser;
-    final displayName = user?.userMetadata?['name'] ?? user?.email ?? 'Usuário';
+    final displayName = _username ?? user?.userMetadata?['name'] ?? 'Usuário';
     final initials = _getInitials(displayName);
     final levelNumber = _currentLevel?.levelNumber ?? 0;
     final achievementsCount = _unlockedAchievements.length;
     final streak = _userStats?.currentStreakDays ?? 0;
+    final lastActivity = _userStats?.lastActivityDate;
+    final statusLabel = _statusLabel(lastActivity);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -833,7 +917,7 @@ class _MissionsScreenState extends State<MissionsScreen>
           ),
           const SizedBox(height: 2),
           Text(
-            'Inactive Member',
+            statusLabel,
             style: TextStyle(
               color: Colors.white.withOpacity(0.8),
               fontSize: 12,
@@ -845,12 +929,9 @@ class _MissionsScreenState extends State<MissionsScreen>
             children: [
               _buildStatMini(label: 'Nível', value: '$levelNumber'),
               Container(width: 1, height: 24, color: Colors.white24),
-              _buildStatMini(label: 'Moedas', value: '$_coins'),
+              _buildStatMini(label: 'Talentos', value: '$_coins'),
               Container(width: 1, height: 24, color: Colors.white24),
-              _buildStatMini(
-                label: 'Conquistas',
-                value: '$achievementsCount',
-              ),
+              _buildStatMini(label: 'Conquistas', value: '$achievementsCount'),
             ],
           ),
           const SizedBox(height: 8),
@@ -881,10 +962,7 @@ class _MissionsScreenState extends State<MissionsScreen>
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.8),
-            fontSize: 12,
-          ),
+          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
         ),
       ],
     );
@@ -897,9 +975,13 @@ class _MissionsScreenState extends State<MissionsScreen>
 
     // Garantir lista ordenada
     thresholds.sort((a, b) => (a['level'] as int).compareTo(b['level'] as int));
-    int idx = thresholds.indexWhere((t) => (t['level'] ?? 0) == currentLevelNumber);
+    int idx = thresholds.indexWhere(
+      (t) => (t['level'] ?? 0) == currentLevelNumber,
+    );
     if (idx == -1) {
-      idx = thresholds.indexWhere((t) => (t['level'] ?? 0) > currentLevelNumber);
+      idx = thresholds.indexWhere(
+        (t) => (t['level'] ?? 0) > currentLevelNumber,
+      );
     }
     if (idx == -1) idx = thresholds.length - 1;
 
@@ -914,8 +996,9 @@ class _MissionsScreenState extends State<MissionsScreen>
     }
 
     final totalForLevel = (nextThreshold - prevThreshold).clamp(1, 1 << 31);
-    final progress =
-        ((_totalXp - prevThreshold) / totalForLevel).clamp(0.0, 1.0).toDouble();
+    final progress = ((_totalXp - prevThreshold) / totalForLevel)
+        .clamp(0.0, 1.0)
+        .toDouble();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -948,10 +1031,7 @@ class _MissionsScreenState extends State<MissionsScreen>
                 child: Text(
                   levelName,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ),
               const SizedBox(width: 12),
@@ -982,6 +1062,7 @@ class _MissionsScreenState extends State<MissionsScreen>
 
   Widget _buildMilestoneList() {
     final milestones = _levels.isNotEmpty ? _levels : _staticMilestones();
+    final currentLevelNumber = _currentLevel?.levelNumber ?? 0;
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF6EA9A8),
@@ -1015,6 +1096,21 @@ class _MissionsScreenState extends State<MissionsScreen>
                       color: Colors.white.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(10),
                     ),
+                    child: Icon(
+                      _isLevelReached(
+                            m is Level
+                                ? m.levelNumber
+                                : int.tryParse(
+                                        (m as Map<String, dynamic>)['level'] ??
+                                            '',
+                                      ) ??
+                                      0,
+                            currentLevelNumber,
+                          )
+                          ? Icons.check_circle
+                          : Icons.lock_open,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1034,8 +1130,8 @@ class _MissionsScreenState extends State<MissionsScreen>
                           m is Level
                               ? (m.description ?? '')
                               : ((m as Map<String, dynamic>)['description']
-                                      as String? ??
-                                  ''),
+                                        as String? ??
+                                    ''),
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 12,
@@ -1079,8 +1175,7 @@ class _MissionsScreenState extends State<MissionsScreen>
       {
         'level': '20',
         'title': 'Mensageiro Divino',
-        'description':
-            'Descrição: Compartilha a Palavra com ousadia e amor.',
+        'description': 'Descrição: Compartilha a Palavra com ousadia e amor.',
       },
     ];
   }
@@ -1117,8 +1212,11 @@ class _MissionsScreenState extends State<MissionsScreen>
   Widget _buildAchievementsRecentSection() {
     if (_unlockedAchievements.isEmpty) return const SizedBox.shrink();
     final recent = [..._unlockedAchievements]
-      ..sort((a, b) => (b.unlockedAt ?? DateTime(1970))
-          .compareTo(a.unlockedAt ?? DateTime(1970)));
+      ..sort(
+        (a, b) => (b.unlockedAt ?? DateTime(1970)).compareTo(
+          a.unlockedAt ?? DateTime(1970),
+        ),
+      );
     final top3 = recent.take(3).toList();
 
     return Container(
@@ -1190,5 +1288,168 @@ class _MissionsScreenState extends State<MissionsScreen>
         ],
       ),
     );
+  }
+
+  Future<void> _refreshMissionsAndWeekly() async {
+    try {
+      await _missionsService.prepareTodayMissions();
+      final todayMissions = await _missionsService.getTodayMissions();
+      final weekly = await _weeklyService.getWeeklyChallengesWithProgress();
+      final upcoming = await _weeklyService.getUpcomingChallenges();
+      final recent = await _weeklyService.getRecentChallenges();
+
+      if (!mounted || _isDisposed) return;
+      setState(() {
+        _todayMissions = todayMissions;
+        _weeklyProgress = weekly;
+        _upcoming = upcoming;
+        _recent = recent;
+      });
+    } catch (_) {}
+  }
+
+  Widget _buildXpHistory() {
+    if (_recentXp.isEmpty) return const SizedBox.shrink();
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Últimos ganhos de XP',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Color(0xFF005954),
+            ),
+          ),
+          const SizedBox(height: 10),
+          ..._recentXp.map(
+            (row) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.trending_up,
+                    color: Color(0xFF005954),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      row['description'] as String? ??
+                          (row['transaction_type'] as String? ?? 'XP'),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '+${row['xp_amount']} XP',
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShareCta() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Compartilhe sua citação do dia',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Color(0xFF005954),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Envie uma citação ou versículo e ganhe XP na missão de compartilhamento.',
+            style: TextStyle(fontSize: 13, color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: () async {
+              final quote = _todaysQuote.isNotEmpty
+                  ? _todaysQuote
+                  : await HomeService(
+                      Supabase.instance.client,
+                    ).getTodaysQuote();
+              if (!mounted) return;
+
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => QuoteScreen(
+                    citation: quote['citation'],
+                    author: quote['author'],
+                  ),
+                ),
+              );
+              if (!mounted) return;
+              await _refreshGamificationData();
+              await _refreshMissionsAndWeekly();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF005954),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            icon: const Icon(Icons.share),
+            label: const Text('Compartilhar citação'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _statusLabel(DateTime? lastActivity) {
+    if (lastActivity == null) return 'Inativo';
+    final days = DateTime.now().difference(lastActivity).inDays;
+    if (days <= 7) return 'Ativo';
+    if (days <= 30) return 'Parcialmente ativo';
+    return 'Inativo';
+  }
+
+  bool _isLevelReached(int level, int currentLevel) {
+    return level <= currentLevel;
   }
 }

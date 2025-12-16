@@ -35,7 +35,9 @@ class _HomeScreenState extends State<HomeScreen> {
     // Auto-refresh de XP/Stats quando houver eventos
     GamificationService.events.listen((event) async {
       if (!mounted) return;
-      if (event == 'xp_changed' || event == 'level_up') {
+      if (event == 'xp_changed' ||
+          event == 'level_up' ||
+          event == 'streak_changed') {
         try {
           await GamificationService.forceSync();
           final totalXp = await GamificationService.getTotalXp();
@@ -67,6 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await GamificationService.initialize();
       await GamificationService.forceSync();
+      await GamificationService.repairStreakFromHistoryIfNeeded();
 
       // Garantir que o perfil do usuário existe
       await _homeService.ensureUserProfile();
@@ -216,12 +219,17 @@ class _HomeScreenState extends State<HomeScreen> {
       final nextThreshold = currentLevel >= thresholds.length - 1
           ? thresholds.last
           : thresholds[currentLevel];
-      final totalForLevel = (nextThreshold - previousThreshold).clamp(1, 1 << 31);
+      final totalForLevel = (nextThreshold - previousThreshold).clamp(
+        1,
+        1 << 31,
+      );
       final xpToNext = currentLevel >= thresholds.length - 1
           ? 0
           : (nextThreshold - currentXp).clamp(0, totalForLevel);
-      final currentXpInLevel =
-          (currentXp - previousThreshold).clamp(0, totalForLevel);
+      final currentXpInLevel = (currentXp - previousThreshold).clamp(
+        0,
+        totalForLevel,
+      );
       final progress = totalForLevel > 0
           ? currentXpInLevel / totalForLevel
           : 0.0;
@@ -374,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Semana: 0/7',
+                              'Semana: ${_weekProgress()}/${_userProfile?.weeklyGoal ?? 7}',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -778,6 +786,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return months[month - 1];
   }
 
+  int _weekProgress() {
+    final goal = _userProfile?.weeklyGoal ?? 7;
+    final streak = _userStats?.currentStreakDays ?? 0;
+    return streak.clamp(0, goal);
+  }
+
   List<int> _levelThresholdsFor(int level) {
     final base = [0, 150, 400, 750, 1200];
     if (level < base.length) {
@@ -785,7 +799,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final thresholds = List<int>.from(base);
-    var increment = base.last - base[base.length - 2]; // mantém padrão de crescimento
+    var increment =
+        base.last - base[base.length - 2]; // mantém padrão de crescimento
     for (int i = base.length; i <= level; i++) {
       thresholds.add(thresholds.last + increment);
       increment += 100;

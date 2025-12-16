@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'dart:math';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
@@ -21,9 +22,35 @@ class QuoteScreen extends StatefulWidget {
 
 class _QuoteScreenState extends State<QuoteScreen> {
   final GlobalKey _globalKey = GlobalKey();
+  late String _backgroundImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _backgroundImageUrl = _nextBackgroundUrl();
+  }
+
+  String _nextBackgroundUrl() {
+    final seed = Random().nextInt(1 << 31);
+    // `source.unsplash.com` retorna uma imagem aleatória baseada nos termos.
+    // `sig` ajuda a evitar cache repetindo a mesma imagem.
+    return 'https://source.unsplash.com/1080x1920/?nature,landscape&sig=$seed';
+  }
 
   Future<void> _shareQuote() async {
     try {
+      // Forçar uma imagem diferente a cada clique em compartilhar
+      final newUrl = _nextBackgroundUrl();
+      setState(() {
+        _backgroundImageUrl = newUrl;
+      });
+      try {
+        await precacheImage(NetworkImage(newUrl), context);
+      } catch (_) {
+        // Se falhar (rede/cache), segue com o que estiver renderizado
+      }
+      if (!mounted) return;
+
       // Mostrar loading
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -34,7 +61,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
       );
 
       // Aguardar um pouco para garantir que a tela está renderizada
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 350));
 
       // Capturar a tela
       final ui.Image? image = await _captureScreen();
@@ -102,6 +129,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
             await service.completeMissionByCode('share_quote');
             final weekly = WeeklyChallengesService(Supabase.instance.client);
             await weekly.incrementByType('sharing', step: 1);
+            if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Missão registrada: compartilhar citação'),
@@ -111,7 +139,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
         }
       }
     } catch (e) {
-      print('Erro ao compartilhar: $e');
+      debugPrint('Erro ao compartilhar: $e');
 
       // Fallback: compartilhar apenas texto
       try {
@@ -131,7 +159,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
 
         await Share.share(fullQuote, subject: 'Citação do Dia - BibliApp');
       } catch (fallbackError) {
-        print('Erro no fallback: $fallbackError');
+        debugPrint('Erro no fallback: $fallbackError');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -160,10 +188,6 @@ class _QuoteScreenState extends State<QuoteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // URL da imagem de fundo do Unsplash (natureza, qualidade 4.0)
-    const String backgroundImageUrl =
-        'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1080&q=80&fit=crop&crop=center';
-
     return Scaffold(
       body: Stack(
         children: [
@@ -176,7 +200,8 @@ class _QuoteScreenState extends State<QuoteScreen> {
                 // Imagem de fundo
                 Positioned.fill(
                   child: Image.network(
-                    backgroundImageUrl,
+                    _backgroundImageUrl,
+                    key: ValueKey(_backgroundImageUrl),
                     fit: BoxFit.cover,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
@@ -197,7 +222,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
                   ),
                 ),
                 // Overlay escuro
-                Container(color: Colors.black.withOpacity(0.5)),
+                Container(color: Colors.black.withAlpha(128)),
                 // Conteúdo principal
                 SafeArea(
                   child: Padding(
@@ -276,7 +301,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.3),
+                      backgroundColor: Colors.white.withAlpha(77),
                       minimumSize: const Size(200, 50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(25),
