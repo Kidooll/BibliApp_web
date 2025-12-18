@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services/sleep_prefs.dart';
-import 'sleep_home_screen.dart';
+import 'sleep_screen.dart';
+
 
 class WelcomeSleepScreen extends StatelessWidget {
   const WelcomeSleepScreen({super.key});
@@ -78,11 +79,18 @@ class WelcomeSleepScreen extends StatelessWidget {
                         onPressed: () async {
                           await SleepPrefs.setWelcomeSeen();
                           if (!context.mounted) return;
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (context) => const SleepHomeScreen(),
-                            ),
-                          );
+                          // Força rebuild do SleepScreen
+                          // Simples rebuild via setState
+                          final sleepWidget = context.findAncestorWidgetOfExactType<SleepScreen>();
+                          if (sleepWidget != null) {
+                            // Força rebuild navegando para a mesma tela
+                            Navigator.of(context).pushReplacement(
+                              PageRouteBuilder(
+                                pageBuilder: (context, animation, _) => const SleepScreen(),
+                                transitionDuration: Duration.zero,
+                              ),
+                            );
+                          }
                         },
                         child: const Text('COMEÇAR'),
                       ),

@@ -161,8 +161,8 @@ class _SleepTrackDetailScreenState extends State<SleepTrackDetailScreen> {
                         const SizedBox(height: 18),
                         const Divider(color: Color(0x223C4A7A)),
                         const SizedBox(height: 12),
-                        Row(
-                          children: const [
+                        const Row(
+                          children: [
                             _Stat(
                               icon: Icons.favorite_rounded,
                               label: '24.234 Favorits',

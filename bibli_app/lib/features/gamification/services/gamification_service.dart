@@ -5,6 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/level.dart';
 import '../models/achievement.dart';
 import '../models/user_stats.dart';
+import 'achievement_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
+import 'package:bibli_app/core/constants/app_strings.dart';
+import 'package:bibli_app/core/services/log_service.dart';
+import 'package:bibli_app/core/services/monitoring_service.dart';
 
 class GamificationService {
   static const String _supabase = 'supabase';
@@ -50,8 +55,8 @@ class GamificationService {
       if (lastSyncData != null) {
         _lastSync = DateTime.parse(lastSyncData);
       }
-    } catch (e) {
-      print('Erro ao carregar cache: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao carregar cache', e, stack, 'GamificationService');
       _localCache = {};
     }
   }
@@ -62,8 +67,8 @@ class GamificationService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_cacheKey, json.encode(_localCache));
       await prefs.setString(_lastSyncKey, DateTime.now().toIso8601String());
-    } catch (e) {
-      print('Erro ao salvar cache: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao salvar cache', e, stack, 'GamificationService');
     }
   }
 
@@ -95,8 +100,8 @@ class GamificationService {
       _lastSync = DateTime.now();
 
       await _saveCache();
-    } catch (e) {
-      print('Erro ao sincronizar com Supabase: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao sincronizar com Supabase', e, stack, 'GamificationService');
     }
   }
 
@@ -135,12 +140,16 @@ class GamificationService {
       final newLevel = _levelForXp(updatedXp);
 
       if (newLevel > previousLevel) {
-        print('🎉 Level up! Novo nível: $newLevel');
+        LogService.info('${AppStrings.levelUp} $newLevel', 'GamificationService');
+        await MonitoringService.logLevelUp(newLevel, updatedXp);
         _emitEvent('level_up');
       }
 
       // Verificar conquistas
-      await _checkAchievements();
+      final newAchievements = await _checkAchievements();
+      if (newAchievements.isNotEmpty) {
+        _emitEvent('achievements_unlocked');
+      }
 
       // Sincronizar com Supabase para refletir no restante da UI
       await _syncWithSupabase();
@@ -149,13 +158,16 @@ class GamificationService {
       // Notificar que XP mudou
       _emitEvent('xp_changed');
       return true;
-    } on PostgrestException catch (e) {
-      print(
-        'Erro ao inserir XP: code=${e.code}, message=${e.message}, details=${e.details}',
+    } on PostgrestException catch (e, stack) {
+      LogService.error(
+        'Erro ao inserir XP: code=${e.code}, message=${e.message}',
+        e,
+        stack,
+        'GamificationService',
       );
       return false;
-    } catch (e) {
-      print('Erro ao adicionar XP: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao adicionar XP', e, stack, 'GamificationService');
       return false;
     }
   }
@@ -172,16 +184,18 @@ class GamificationService {
       // Adicionar XP por ler devocional
       await addXp(
         actionName: 'devotional_read',
-        xpAmount: 8,
+        xpAmount: XpValues.devotionalRead,
         description: 'Devocional lido',
         relatedId: devotionalId,
       );
+      
+      await MonitoringService.logDevotionalRead(devotionalId.toString());
 
       // Verificar se é primeira leitura do dia (qualquer devocional)
       if (firstReadOfDay) {
         await addXp(
           actionName: 'daily_bonus',
-          xpAmount: 5,
+          xpAmount: XpValues.dailyBonus,
           description: 'Primeira leitura do dia',
         );
       }
@@ -191,8 +205,8 @@ class GamificationService {
       _emitEvent('streak_changed');
 
       await _saveCache();
-    } catch (e) {
-      print('Erro ao marcar devocional como lido: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao marcar devocional como lido', e, stack, 'GamificationService');
     }
   }
 
@@ -258,8 +272,8 @@ class GamificationService {
       _localCache[_streakRepairKey] = todayKey;
       await _saveCache();
       _emitEvent('streak_changed');
-    } catch (e) {
-      print('Erro ao reparar streak: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao reparar streak', e, stack, 'GamificationService');
     }
   }
 
@@ -306,21 +320,24 @@ class GamificationService {
         if (newStreak == 3) {
           await addXp(
             actionName: 'streak_bonus',
-            xpAmount: 15,
+            xpAmount: XpValues.streak3Days,
             description: 'Bônus por 3 dias seguidos',
           );
+          await MonitoringService.logStreakAchieved(3);
         } else if (newStreak == 7) {
           await addXp(
             actionName: 'streak_bonus',
-            xpAmount: 35,
+            xpAmount: XpValues.streak7Days,
             description: 'Bônus por 7 dias seguidos',
           );
+          await MonitoringService.logStreakAchieved(7);
         } else if (newStreak == 30) {
           await addXp(
             actionName: 'streak_bonus',
-            xpAmount: 150,
+            xpAmount: XpValues.streak30Days,
             description: 'Bônus por 30 dias seguidos',
           );
+          await MonitoringService.logStreakAchieved(30);
         }
       }
 
@@ -352,11 +369,19 @@ class GamificationService {
       }, onConflict: 'user_id');
 
       // Atualizar leitura semanal/contagem simples na user_profiles
+      final currentLevel = await getCurrentLevel();
+      final currentXp = await getTotalXp();
+      
+      LogService.info(
+        'Atualizando user_profiles: level=$currentLevel, xp=$currentXp',
+        'GamificationService',
+      );
+      
       await Supabase.instance.client.from('user_profiles').upsert({
         'id': user.id,
         'total_devotionals_read': totalDevotionalsRead,
-        'current_level': await getCurrentLevel(),
-        'total_xp': await getTotalXp(),
+        'current_level': currentLevel,
+        'total_xp': currentXp,
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'id');
 
@@ -371,11 +396,12 @@ class GamificationService {
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'user_profile_id');
 
-      print(
+      LogService.info(
         'Streak atualizado: $newStreak dias, Total lidos: $totalDevotionalsRead',
+        'GamificationService',
       );
-    } catch (e) {
-      print('Erro ao atualizar streak: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao atualizar streak', e, stack, 'GamificationService');
     }
   }
 
@@ -485,47 +511,23 @@ class GamificationService {
   }
 
   // Verificar conquistas
-  static Future<void> _checkAchievements() async {
+  static Future<List<Achievement>> _checkAchievements() async {
     try {
       final userStats = await getUserStats();
-      if (userStats == null) return;
-
-      final achievements = await getAllAchievements();
-      final unlockedAchievements = await getUserAchievements();
-
-      for (final achievement in achievements) {
-        // Pular se já foi desbloqueada
-        if (unlockedAchievements.any((ua) => ua.id == achievement.id)) {
-          continue;
-        }
-
-        bool shouldUnlock = false;
-
-        switch (achievement.requirementType) {
-          case 'devotionals_read':
-            shouldUnlock =
-                userStats.totalDevotionalsRead >= achievement.requirementValue;
-            break;
-          case 'streak_days':
-            shouldUnlock =
-                userStats.currentStreakDays >= achievement.requirementValue;
-            break;
-          case 'highlights':
-            shouldUnlock =
-                userStats.totalHighlights >= achievement.requirementValue;
-            break;
-          case 'chapters_read':
-            shouldUnlock =
-                userStats.chaptersReadCount >= achievement.requirementValue;
-            break;
-        }
-
-        if (shouldUnlock) {
-          await _unlockAchievement(achievement);
-        }
-      }
-    } catch (e) {
-      print('Erro ao verificar conquistas: $e');
+      if (userStats == null) return [];
+      
+      final totalXp = await getTotalXp();
+      
+      return await AchievementService.checkAndUnlockAchievements(
+        currentStreak: userStats.currentStreakDays,
+        totalXp: totalXp,
+        devotionalCount: userStats.totalDevotionalsRead,
+        hasReadDevotional: userStats.totalDevotionalsRead > 0,
+        hasListenedAudio: false, // TODO: implementar tracking de áudio
+      );
+    } catch (e, stack) {
+      LogService.error('Erro ao verificar conquistas', e, stack, 'GamificationService');
+      return [];
     }
   }
 
@@ -556,7 +558,6 @@ class GamificationService {
         actionName: 'achievement_unlocked',
         xpAmount: achievement.xpReward,
         description: 'Conquista: ${achievement.title}',
-        relatedId: achievement.id,
       );
 
       // Atualizar cache local
@@ -570,9 +571,9 @@ class GamificationService {
       await _saveCache();
 
       _emitEvent('achievement_unlocked');
-      print('🏆 Conquista desbloqueada: ${achievement.title}');
-    } catch (e) {
-      print('Erro ao desbloquear conquista: $e');
+      LogService.info('${AppStrings.achievementUnlocked} ${achievement.title}', 'GamificationService');
+    } catch (e, stack) {
+      LogService.error('Erro ao desbloquear conquista', e, stack, 'GamificationService');
     }
   }
 
@@ -593,23 +594,29 @@ class GamificationService {
     final totalXp = await getTotalXp();
     final currentLevel = await getCurrentLevel();
 
-    final levelRequirements = [0, 150, 400, 750, 1200];
+    const levelRequirements = LevelRequirements.requirements;
 
-    if (currentLevel >= 5) return 0;
+    if (currentLevel >= 10) {
+      return 0; // Nível máximo atingido
+    }
 
-    return levelRequirements[currentLevel] - totalXp;
+    if (currentLevel < levelRequirements.length) {
+      return levelRequirements[currentLevel] - totalXp;
+    }
+    
+    return 0;
   }
 
   static int _levelForXp(int totalXp) {
-    final levelRequirements = [0, 150, 400, 750, 1200];
+    const levelRequirements = LevelRequirements.requirements;
     int level = 1;
     for (int i = 1; i < levelRequirements.length; i++) {
       if (totalXp >= levelRequirements[i]) {
-        level = i + 1; // níveis começam em 1
+        level = i + 1;
       }
     }
-    // Se atingir o último limite, permanece no último nível configurado
-    return level.clamp(1, levelRequirements.length);
+    // Máximo nível 10 conforme PRD
+    return level.clamp(1, 10);
   }
 
   // Obter informações do nível atual
@@ -624,8 +631,8 @@ class GamificationService {
           .single();
 
       return Level.fromJson(response);
-    } catch (e) {
-      print('Erro ao obter informações do nível: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao obter informações do nível', e, stack, 'GamificationService');
       return null;
     }
   }
@@ -650,8 +657,8 @@ class GamificationService {
           .order('requirement_value');
 
       return response.map((json) => Achievement.fromJson(json)).toList();
-    } catch (e) {
-      print('Erro ao obter conquistas: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao obter conquistas', e, stack, 'GamificationService');
       return [];
     }
   }
@@ -697,8 +704,8 @@ class GamificationService {
           .limit(limit);
 
       return List<Map<String, dynamic>>.from(res);
-    } catch (e) {
-      print('Erro ao buscar histórico de XP: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao buscar histórico de XP', e, stack, 'GamificationService');
       return [];
     }
   }
@@ -713,8 +720,8 @@ class GamificationService {
           .maybeSingle();
 
       return response != null ? UserStats.fromJson(response) : null;
-    } catch (e) {
-      print('Erro ao obter estatísticas do Supabase: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao obter estatísticas do Supabase', e, stack, 'GamificationService');
       return null;
     }
   }
@@ -737,8 +744,8 @@ class GamificationService {
         achievementData['unlocked_at'] = json['unlocked_at'];
         return Achievement.fromJson(achievementData);
       }).toList();
-    } catch (e) {
-      print('Erro ao obter conquistas do Supabase: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao obter conquistas do Supabase', e, stack, 'GamificationService');
       return [];
     }
   }
@@ -752,7 +759,7 @@ class GamificationService {
       );
       if (response != null) return response as int;
     } catch (e) {
-      print('RPC get_user_total_xp indisponível, somando diretamente: $e');
+      LogService.warning('RPC get_user_total_xp indisponível, somando diretamente', 'GamificationService');
     }
 
     // Soma direta no esquema atual (xp_amount/user_id)
@@ -770,8 +777,8 @@ class GamificationService {
           sum += v.toInt();
       }
       return sum;
-    } catch (e) {
-      print('Falha ao somar xp_amount: $e');
+    } catch (e, stack) {
+      LogService.error('Falha ao somar xp_amount', e, stack, 'GamificationService');
       return 0;
     }
   }
@@ -792,9 +799,9 @@ class GamificationService {
       _localCache = {};
       _lastSync = null;
 
-      print('Cache de gamificação limpo com sucesso');
-    } catch (e) {
-      print('Erro ao limpar cache de gamificação: $e');
+      LogService.info('Cache de gamificação limpo com sucesso', 'GamificationService');
+    } catch (e, stack) {
+      LogService.error('Erro ao limpar cache de gamificação', e, stack, 'GamificationService');
     }
   }
 }

@@ -12,27 +12,30 @@ class SleepScreen extends StatefulWidget {
 }
 
 class _SleepScreenState extends State<SleepScreen> {
-  late final Future<bool> _welcomeSeenFuture;
+  bool? _welcomeSeen;
 
   @override
   void initState() {
     super.initState();
-    _welcomeSeenFuture = SleepPrefs.isWelcomeSeen();
+    loadWelcomeState();
+  }
+
+  Future<void> loadWelcomeState() async {
+    final seen = await SleepPrefs.isWelcomeSeen();
+    if (mounted) {
+      setState(() {
+        _welcomeSeen = seen;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _welcomeSeenFuture,
-      builder: (context, snapshot) {
-        final seen = snapshot.data ?? false;
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF005954)),
-          );
-        }
-        return seen ? const SleepHomeScreen() : const WelcomeSleepScreen();
-      },
-    );
+    if (_welcomeSeen == null) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF005954)),
+      );
+    }
+    return _welcomeSeen! ? const SleepHomeScreen() : const WelcomeSleepScreen();
   }
 }

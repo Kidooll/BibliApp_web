@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
+import 'package:bibli_app/core/services/log_service.dart';
 
 /// Tela de seleção de horário e dias para lembrete de devocional
 class RemindersScreen extends StatefulWidget {
@@ -15,23 +17,53 @@ class _RemindersScreenState extends State<RemindersScreen> {
   final List<String> _days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
   Future<void> _savePreferencesAndContinue() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('reminder_time', _selectedTime.format(context));
-    await prefs.setStringList(
-      'reminder_days',
-      _selectedDays.map((d) => d ? '1' : '0').toList(),
-    );
-    await prefs.setBool('reminder_configured', true);
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('reminder_time', _selectedTime.format(context));
+      await prefs.setStringList(
+        'reminder_days',
+        _selectedDays.map((d) => d ? '1' : '0').toList(),
+      );
+      await prefs.setBool('reminder_configured', true);
+      
+      if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
+        final navigator = Navigator.of(context);
+        
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('✅ Lembretes configurados com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        navigator.pushReplacementNamed('/home');
+      }
+    } catch (e, stack) {
+      LogService.error('Erro ao salvar lembretes', e, stack, 'RemindersScreen');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Erro ao salvar configurações'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _skipAndContinue() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('reminder_skipped', true);
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('reminder_skipped', true);
+      
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
+    } catch (e, stack) {
+      LogService.error('Erro ao pular lembretes', e, stack, 'RemindersScreen');
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
     }
   }
 
@@ -100,11 +132,20 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 child: ElevatedButton(
                   onPressed: _savePreferencesAndContinue,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF005954),
-                    shape: const StadiumBorder(),
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
+                    ),
                     minimumSize: const Size(0, 56),
                   ),
-                  child: const Text('SALVAR', style: TextStyle(fontSize: 18)),
+                  child: const Text(
+                    'SALVAR LEMBRETES',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               TextButton(

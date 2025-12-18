@@ -5,6 +5,7 @@ import 'package:bibli_app/features/sleep/screens/sleep_screen.dart';
 import 'package:bibli_app/features/bible/screens/bible_screen.dart';
 import 'package:bibli_app/features/missions/screens/missions_screen.dart';
 import 'package:bibli_app/features/profile/screens/profile_screen.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -62,7 +63,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             },
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.white,
-            selectedItemColor: const Color(0xFF005954),
+            selectedItemColor: AppColors.primary,
             unselectedItemColor: Colors.grey,
             selectedLabelStyle: const TextStyle(
               fontWeight: FontWeight.w600,

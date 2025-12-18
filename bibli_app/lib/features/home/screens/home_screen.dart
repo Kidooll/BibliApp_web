@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/home/services/home_service.dart';
@@ -8,6 +9,13 @@ import 'package:bibli_app/features/devotionals/screens/devotional_screen.dart';
 import 'package:bibli_app/features/quotes/screens/quote_screen.dart';
 import 'package:bibli_app/features/gamification/services/gamification_service.dart';
 import 'package:bibli_app/features/gamification/models/user_stats.dart';
+import 'package:bibli_app/features/gamification/services/achievement_service.dart';
+import 'package:bibli_app/features/gamification/services/achievement_overlay_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
+import 'package:bibli_app/core/widgets/loading_widget.dart';
+import 'package:bibli_app/core/widgets/animations.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:bibli_app/core/services/monitoring_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,6 +26,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final HomeService _homeService = HomeService(Supabase.instance.client);
+  StreamSubscription? _eventsSubscription;
 
   UserProfile? _userProfile;
   Devotional? _todaysDevotional;
@@ -27,13 +36,18 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   int _totalXp = 0;
   UserStats? _userStats;
+  DateTime _selectedDate = DateTime.now();
+  Devotional? _selectedDevotional;
+  Map<String, String?> _selectedQuote = {};
+  bool _isLoadingDate = false;
 
   @override
   void initState() {
     super.initState();
+    MonitoringService.logScreenView('home_screen');
     _loadData();
     // Auto-refresh de XP/Stats quando houver eventos
-    GamificationService.events.listen((event) async {
+    _eventsSubscription = GamificationService.events.listen((event) async {
       if (!mounted) return;
       if (event == 'xp_changed' ||
           event == 'level_up' ||
@@ -48,9 +62,36 @@ class _HomeScreenState extends State<HomeScreen> {
               _userStats = stats;
             });
           }
-        } catch (_) {}
+        } catch (e) {
+          // Ignora erros de sincronização
+        }
+      } else if (event == 'achievements_unlocked') {
+        // Verificar novas conquistas e mostrar notificações
+        try {
+          final achievements = await AchievementService.getAchievements();
+          final newAchievements = achievements.where((a) => 
+            a.isUnlocked && 
+            a.unlockedAt != null &&
+            DateTime.now().difference(a.unlockedAt!).inSeconds < 10
+          ).toList();
+          
+          if (newAchievements.isNotEmpty && mounted) {
+            AchievementOverlayService.showMultipleAchievements(
+              context, 
+              newAchievements,
+            );
+          }
+        } catch (e) {
+          // Ignora erros de conquistas
+        }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _eventsSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -74,23 +115,26 @@ class _HomeScreenState extends State<HomeScreen> {
       // Garantir que o perfil do usuário existe
       await _homeService.ensureUserProfile();
 
-      final userProfile = await _homeService.getUserProfile(user.id);
-      final todaysDevotional = await _homeService.getTodaysDevotional();
-      final readingStreak = await _homeService.getReadingStreak(user.id);
-      final recentDevotionals = await _homeService.getRecentDevotionals();
-      final todaysQuote = await _homeService.getTodaysQuote();
-      final totalXp = await GamificationService.getTotalXp();
-      final userStats = await GamificationService.getUserStats();
+      // Carregar dados em paralelo para melhor performance
+      final futures = await Future.wait([
+        _homeService.getUserProfile(user.id),
+        _homeService.getTodaysDevotional(),
+        _homeService.getReadingStreak(user.id),
+        _homeService.getRecentDevotionals(),
+        _homeService.getTodaysQuote(),
+        GamificationService.getTotalXp(),
+        GamificationService.getUserStats(),
+      ]);
 
       if (mounted) {
         setState(() {
-          _userProfile = userProfile;
-          _todaysDevotional = todaysDevotional;
-          _readingStreak = readingStreak;
-          _recentDevotionals = recentDevotionals;
-          _todaysQuote = todaysQuote;
-          _totalXp = totalXp;
-          _userStats = userStats;
+          _userProfile = futures[0] as UserProfile?;
+          _todaysDevotional = futures[1] as Devotional?;
+          _readingStreak = futures[2] as ReadingStreak?;
+          _recentDevotionals = futures[3] as List<Devotional>;
+          _todaysQuote = futures[4] as Map<String, String?>;
+          _totalXp = futures[5] as int;
+          _userStats = futures[6] as UserStats?;
           _isLoading = false;
         });
       }
@@ -106,8 +150,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF005954)),
+      return const Scaffold(
+        body: LoadingWidget(
+          message: 'Carregando dados...',
+          showShimmer: true,
+        ),
       );
     }
 
@@ -117,31 +164,48 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Center(child: Text('Usuário não autenticado'));
     }
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header com saudação
-            _buildHeader(),
-            const SizedBox(height: 24),
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header com saudação
+              AnimatedEntry(
+                delay: const Duration(milliseconds: 100),
+                child: _buildHeader(),
+              ),
+              const SizedBox(height: 24),
 
-            // Card de progresso do usuário
-            _buildProgressCard(),
-            const SizedBox(height: 24),
+              // Card de progresso do usuário
+              AnimatedEntry(
+                delay: const Duration(milliseconds: 200),
+                child: _buildProgressCard(),
+              ),
+              const SizedBox(height: 24),
 
-            // Seletor de data
-            _buildDateSelector(),
-            const SizedBox(height: 24),
+              // Seletor de data
+              AnimatedEntry(
+                delay: const Duration(milliseconds: 300),
+                child: _buildDateSelector(),
+              ),
+              const SizedBox(height: 24),
 
-            // Card de conteúdo diário
-            _buildDailyContentCard(),
-            const SizedBox(height: 24),
+              // Card de conteúdo diário
+              AnimatedEntry(
+                delay: const Duration(milliseconds: 400),
+                child: _buildDailyContentCard(),
+              ),
+              const SizedBox(height: 24),
 
-            // Recomendações do editor
-            _buildEditorRecommendations(),
-          ],
+              // Recomendações do editor
+              AnimatedEntry(
+                delay: const Duration(milliseconds: 500),
+                child: _buildEditorRecommendations(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -211,28 +275,23 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
 
-      final currentXp = _totalXp; // usar XP total real
-      final currentLevel = (_userProfile?.currentLevel ?? 1).clamp(1, 99);
-      final thresholds = _levelThresholdsFor(currentLevel + 1);
-      final previousThreshold =
-          thresholds[(currentLevel - 1).clamp(0, thresholds.length - 1)];
-      final nextThreshold = currentLevel >= thresholds.length - 1
-          ? thresholds.last
-          : thresholds[currentLevel];
-      final totalForLevel = (nextThreshold - previousThreshold).clamp(
-        1,
-        1 << 31,
-      );
-      final xpToNext = currentLevel >= thresholds.length - 1
-          ? 0
-          : (nextThreshold - currentXp).clamp(0, totalForLevel);
-      final currentXpInLevel = (currentXp - previousThreshold).clamp(
-        0,
-        totalForLevel,
-      );
-      final progress = totalForLevel > 0
-          ? currentXpInLevel / totalForLevel
-          : 0.0;
+      final currentXp = _totalXp;
+      final currentLevel = (_userProfile?.currentLevel ?? 1).clamp(1, 10);
+      
+      // Usar os níveis corretos do PRD (10 níveis)
+      const requirements = LevelRequirements.requirements;
+      
+      // Calcular threshold anterior e próximo
+      final previousThreshold = currentLevel > 1 
+          ? requirements[currentLevel - 1] 
+          : 0;
+      final nextThreshold = currentLevel < 10 
+          ? requirements[currentLevel] 
+          : requirements[9] + 1000; // Nível máximo
+      
+      final totalForLevel = nextThreshold - previousThreshold;
+      final currentXpInLevel = (currentXp - previousThreshold).clamp(0, totalForLevel);
+      final progress = totalForLevel > 0 ? currentXpInLevel / totalForLevel : 1.0;
 
       return Card(
         elevation: 4,
@@ -483,8 +542,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = DateTime.now();
     final days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
-    // Calcular o início da semana (domingo)
-    // weekday retorna 1 (segunda) a 7 (domingo), queremos 0 (domingo) a 6 (sábado)
     final weekday = now.weekday;
     final daysFromSunday = weekday == 7 ? 0 : weekday;
     final startOfWeek = now.subtract(Duration(days: daysFromSunday));
@@ -492,19 +549,22 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              _getMonthName(now.month),
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2D2D2D),
+        GestureDetector(
+          onTap: _showFullCalendar,
+          child: Row(
+            children: [
+              Text(
+                _getMonthName(_selectedDate.month),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D2D2D),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-          ],
+              const SizedBox(width: 8),
+              const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         Row(
@@ -516,40 +576,51 @@ class _HomeScreenState extends State<HomeScreen> {
                 dayDate.day == now.day &&
                 dayDate.month == now.month &&
                 dayDate.year == now.year;
+            final isSelected =
+                dayDate.day == _selectedDate.day &&
+                dayDate.month == _selectedDate.month &&
+                dayDate.year == _selectedDate.year;
             final isCurrentMonth = dayDate.month == now.month;
+            final isFuture = dayDate.isAfter(now);
 
-            return Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              decoration: BoxDecoration(
-                color: isToday ? const Color(0xFF005954) : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    days[index],
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isToday
-                          ? Colors.white
-                          : (isCurrentMonth
-                                ? Colors.grey
-                                : Colors.grey.shade300),
+            return GestureDetector(
+              onTap: isFuture ? null : () => _onDateSelected(dayDate),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFF005954) : Colors.transparent,
+                  border: isToday && !isSelected
+                      ? Border.all(color: const Color(0xFF005954), width: 2)
+                      : null,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      days[index],
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isSelected
+                            ? Colors.white
+                            : (isFuture
+                                ? Colors.grey.shade300
+                                : (isCurrentMonth ? Colors.grey : Colors.grey.shade300)),
+                      ),
                     ),
-                  ),
-                  Text(
-                    '$dayNumber',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isToday
-                          ? Colors.white
-                          : (isCurrentMonth
-                                ? const Color(0xFF2D2D2D)
-                                : Colors.grey.shade300),
+                    Text(
+                      '$dayNumber',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected
+                            ? Colors.white
+                            : (isFuture
+                                ? Colors.grey.shade300
+                                : (isCurrentMonth ? const Color(0xFF2D2D2D) : Colors.grey.shade300)),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           }),
@@ -559,6 +630,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDailyContentCard() {
+    final isToday = _selectedDate.day == DateTime.now().day &&
+        _selectedDate.month == DateTime.now().month &&
+        _selectedDate.year == DateTime.now().year;
+    
+    final displayDevotional = isToday ? _todaysDevotional : _selectedDevotional;
+    final displayQuote = isToday ? _todaysQuote : _selectedQuote;
+    final dateLabel = isToday ? 'Hoje' : '${_selectedDate.day}/${_selectedDate.month}';
+
+    if (_isLoadingDate) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF338b85),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -576,9 +668,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Citação do Dia',
-                    style: TextStyle(
+                  Text(
+                    'Citação - $dateLabel',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -593,8 +685,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => QuoteScreen(
-                        citation: _todaysQuote['citation'],
-                        author: _todaysQuote['author'],
+                        citation: displayQuote['citation'],
+                        author: displayQuote['author'],
                       ),
                     ),
                   );
@@ -605,13 +697,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            _todaysQuote['citation'] ??
+            displayQuote['citation'] ??
                 'Os desafios são os lances do destino, que nos preparam para a nossa grandeza.',
             style: const TextStyle(color: Colors.white, fontSize: 14),
           ),
           const SizedBox(height: 20),
 
-          // Devocional de hoje
+          // Devocional
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -619,9 +711,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Icon(Icons.menu_book, color: Colors.white, size: 20),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Devocional de hoje',
-                    style: TextStyle(
+                  Text(
+                    'Devocional - $dateLabel',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -629,40 +721,41 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          DevotionalScreen(devotionalId: _todaysDevotional?.id),
+              if (displayDevotional != null)
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            DevotionalScreen(devotionalId: displayDevotional.id),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF005954),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF005954),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
                   ),
+                  child: const Text('Ler'),
                 ),
-                child: const Text('Ler'),
-              ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            _todaysDevotional?.title ?? 'Desafios como oportunidades Divinas',
+            displayDevotional?.title ?? 'Nenhum devocional disponível para esta data',
             style: const TextStyle(color: Colors.white, fontSize: 14),
           ),
           const SizedBox(height: 20),
 
           // Versículo do dia
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.menu_book, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              const Text(
+              Icon(Icons.menu_book, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Text(
                 'Versículo do Dia',
                 style: TextStyle(
                   color: Colors.white,
@@ -740,15 +833,34 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Expanded(
             child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF5dc1b9),
-                borderRadius: const BorderRadius.only(
+              decoration: const BoxDecoration(
+                color: Color(0xFF5dc1b9),
+                borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(12),
                   topRight: Radius.circular(12),
                 ),
               ),
-              child: const Center(
-                child: Icon(Icons.image, color: Colors.white, size: 48),
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: AppColors.complementary.withOpacity(0.3),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  color: AppColors.complementary.withOpacity(0.3),
+                  child: const Icon(
+                    Icons.image_not_supported,
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
             ),
           ),
@@ -792,19 +904,258 @@ class _HomeScreenState extends State<HomeScreen> {
     return streak.clamp(0, goal);
   }
 
-  List<int> _levelThresholdsFor(int level) {
-    final base = [0, 150, 400, 750, 1200];
-    if (level < base.length) {
-      return base.sublist(0, level + 1);
-    }
+  Future<void> _onDateSelected(DateTime date) async {
+    setState(() {
+      _selectedDate = date;
+      _isLoadingDate = true;
+    });
 
-    final thresholds = List<int>.from(base);
-    var increment =
-        base.last - base[base.length - 2]; // mantém padrão de crescimento
-    for (int i = base.length; i <= level; i++) {
-      thresholds.add(thresholds.last + increment);
-      increment += 100;
+    try {
+      final devotional = await _homeService.getDevotionalByDate(date);
+      final quote = await _homeService.getQuoteByDate(date);
+
+      if (mounted) {
+        setState(() {
+          _selectedDevotional = devotional;
+          _selectedQuote = quote;
+          _isLoadingDate = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingDate = false;
+        });
+      }
     }
-    return thresholds;
+  }
+
+  Future<void> _showFullCalendar() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final readDates = await _homeService.getReadDates(user.id);
+
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => _CalendarDialog(
+        selectedDate: _selectedDate,
+        readDates: readDates,
+        onDateSelected: (date) {
+          Navigator.pop(context);
+          _onDateSelected(date);
+        },
+      ),
+    );
+  }
+}
+
+class _CalendarDialog extends StatefulWidget {
+  final DateTime selectedDate;
+  final Set<DateTime> readDates;
+  final Function(DateTime) onDateSelected;
+
+  const _CalendarDialog({
+    required this.selectedDate,
+    required this.readDates,
+    required this.onDateSelected,
+  });
+
+  @override
+  State<_CalendarDialog> createState() => _CalendarDialogState();
+}
+
+class _CalendarDialogState extends State<_CalendarDialog> {
+  late DateTime _currentMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentMonth = DateTime(widget.selectedDate.year, widget.selectedDate.month);
+  }
+
+  void _previousMonth() {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
+    });
+  }
+
+  void _nextMonth() {
+    final now = DateTime.now();
+    final nextMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
+    if (nextMonth.isBefore(DateTime(now.year, now.month + 1))) {
+      setState(() {
+        _currentMonth = nextMonth;
+      });
+    }
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  bool _isRead(DateTime date) {
+    return widget.readDates.any((d) => _isSameDay(d, date));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final daysInMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
+    final firstWeekday = DateTime(_currentMonth.year, _currentMonth.month, 1).weekday;
+    final now = DateTime.now();
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  onPressed: _previousMonth,
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                Text(
+                  '${_getMonthName(_currentMonth.month)} ${_currentMonth.year}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  onPressed: _nextMonth,
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Dias da semana
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+                  .map((day) => SizedBox(
+                        width: 40,
+                        child: Center(
+                          child: Text(
+                            day,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            ),
+            const SizedBox(height: 8),
+            // Grid de dias
+            ...List.generate((daysInMonth + firstWeekday) ~/ 7 + 1, (weekIndex) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: List.generate(7, (dayIndex) {
+                  final dayNumber = weekIndex * 7 + dayIndex - firstWeekday + 1;
+                  if (dayNumber < 1 || dayNumber > daysInMonth) {
+                    return const SizedBox(width: 40, height: 40);
+                  }
+
+                  final date = DateTime(_currentMonth.year, _currentMonth.month, dayNumber);
+                  final isToday = _isSameDay(date, now);
+                  final isSelected = _isSameDay(date, widget.selectedDate);
+                  final isRead = _isRead(date);
+                  final isFuture = date.isAfter(now);
+
+                  return GestureDetector(
+                    onTap: isFuture ? null : () => widget.onDateSelected(date),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      margin: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF005954)
+                            : (isRead ? const Color(0xFF338b85).withOpacity(0.3) : null),
+                        border: isToday && !isSelected
+                            ? Border.all(color: const Color(0xFF005954), width: 2)
+                            : null,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: Text(
+                              '$dayNumber',
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isFuture ? Colors.grey.shade300 : Colors.black),
+                                fontWeight: isRead ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                          if (isRead && !isSelected)
+                            Positioned(
+                              bottom: 4,
+                              right: 4,
+                              child: Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF005954),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              );
+            }),
+            const SizedBox(height: 16),
+            // Legenda
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildLegend(Colors.grey.shade300, 'Hoje'),
+                _buildLegend(const Color(0xFF338b85).withOpacity(0.3), 'Lido'),
+                _buildLegend(const Color(0xFF005954), 'Selecionado'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLegend(Color color, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
+    );
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+    ];
+    return months[month - 1];
   }
 }

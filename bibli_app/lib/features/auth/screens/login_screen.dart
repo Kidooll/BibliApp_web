@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:bibli_app/features/auth/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bibli_app/core/validators/validators.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -32,9 +34,9 @@ class _LoginScreenState extends State<LoginScreen> {
               right: 0,
               child: Container(
                 height: 200,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: const BorderRadius.only(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
@@ -120,12 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           vertical: 16,
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor, insira seu email';
-                        }
-                        return null;
-                      },
+                      validator: EmailValidator.validate,
                     ),
                     const SizedBox(height: 16),
 
@@ -174,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _signIn,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF005954),
+                          backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),

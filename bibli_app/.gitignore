@@ -12,6 +12,11 @@
 .swiftpm/
 migrate_working_dir/
 
+# bibli_app/.gitignore
+.env
+.env.*
+!.env.example
+
 # IntelliJ related
 *.iml
 *.ipr

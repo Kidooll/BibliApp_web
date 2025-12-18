@@ -45,8 +45,10 @@ class _BibleScreenState extends State<BibleScreen> {
   }
 
   Future<void> _loadBooks() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final books = await _service.getBooks(_translation);
+    if (!mounted) return;
     setState(() {
       _books = books;
       _loading = false;

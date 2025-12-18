@@ -138,13 +138,13 @@ class _SleepHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(4, 10, 4, 4),
       child: SizedBox(
         width: double.infinity,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
-          children: const [
+          children: [
             Text(
               'Hora de Dormir',
               style: TextStyle(

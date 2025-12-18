@@ -1,85 +1,78 @@
 class Achievement {
-  final int id;
-  final String achievementCode;
+  final String id;
   final String title;
   final String description;
-  final String? iconName;
+  final String icon;
   final int xpReward;
-  final String requirementType;
-  final int requirementValue;
-  final bool isActive;
+  final AchievementType type;
+  final int targetValue;
+  final bool isUnlocked;
   final DateTime? unlockedAt;
 
-  Achievement({
+  const Achievement({
     required this.id,
-    required this.achievementCode,
     required this.title,
     required this.description,
-    this.iconName,
+    required this.icon,
     required this.xpReward,
-    required this.requirementType,
-    required this.requirementValue,
-    required this.isActive,
+    required this.type,
+    required this.targetValue,
+    this.isUnlocked = false,
     this.unlockedAt,
   });
 
-  factory Achievement.fromJson(Map<String, dynamic> json) {
+  Achievement copyWith({
+    bool? isUnlocked,
+    DateTime? unlockedAt,
+  }) {
     return Achievement(
-      id: json['id'],
-      achievementCode: json['achievement_code'],
-      title: json['title'],
-      description: json['description'],
-      iconName: json['icon_name'],
-      xpReward: json['xp_reward'],
-      requirementType: json['requirement_type'],
-      requirementValue: json['requirement_value'],
-      isActive: json['is_active'],
-      unlockedAt: json['unlocked_at'] != null 
-          ? DateTime.parse(json['unlocked_at']) 
-          : null,
+      id: id,
+      title: title,
+      description: description,
+      icon: icon,
+      xpReward: xpReward,
+      type: type,
+      targetValue: targetValue,
+      isUnlocked: isUnlocked ?? this.isUnlocked,
+      unlockedAt: unlockedAt ?? this.unlockedAt,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'achievement_code': achievementCode,
       'title': title,
       'description': description,
-      'icon_name': iconName,
-      'xp_reward': xpReward,
-      'requirement_type': requirementType,
-      'requirement_value': requirementValue,
-      'is_active': isActive,
-      'unlocked_at': unlockedAt?.toIso8601String(),
+      'icon': icon,
+      'xpReward': xpReward,
+      'type': type.name,
+      'targetValue': targetValue,
+      'isUnlocked': isUnlocked,
+      'unlockedAt': unlockedAt?.toIso8601String(),
     };
   }
 
-  bool get isUnlocked => unlockedAt != null;
-
-  Achievement copyWith({
-    int? id,
-    String? achievementCode,
-    String? title,
-    String? description,
-    String? iconName,
-    int? xpReward,
-    String? requirementType,
-    int? requirementValue,
-    bool? isActive,
-    DateTime? unlockedAt,
-  }) {
+  factory Achievement.fromJson(Map<String, dynamic> json) {
     return Achievement(
-      id: id ?? this.id,
-      achievementCode: achievementCode ?? this.achievementCode,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      iconName: iconName ?? this.iconName,
-      xpReward: xpReward ?? this.xpReward,
-      requirementType: requirementType ?? this.requirementType,
-      requirementValue: requirementValue ?? this.requirementValue,
-      isActive: isActive ?? this.isActive,
-      unlockedAt: unlockedAt ?? this.unlockedAt,
+      id: json['id'],
+      title: json['title'],
+      description: json['description'],
+      icon: json['icon'],
+      xpReward: json['xpReward'],
+      type: AchievementType.values.byName(json['type']),
+      targetValue: json['targetValue'],
+      isUnlocked: json['isUnlocked'] ?? false,
+      unlockedAt: json['unlockedAt'] != null 
+          ? DateTime.parse(json['unlockedAt']) 
+          : null,
     );
   }
+}
+
+enum AchievementType {
+  streak,
+  totalXp,
+  devotionalCount,
+  firstTime,
+  special,
 }

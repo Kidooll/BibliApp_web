@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/auth/services/auth_service.dart';
+import 'package:bibli_app/core/validators/validators.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -39,15 +41,13 @@ class _SignupScreenState extends State<SignupScreen> {
 
   void _validateEmail() {
     setState(() {
-      _isEmailValid =
-          _emailController.text.trim().isNotEmpty &&
-          _emailController.text.contains('@');
+      _isEmailValid = EmailValidator.isValid(_emailController.text);
     });
   }
 
   void _validatePassword() {
     setState(() {
-      _isPasswordValid = _passwordController.text.length >= 6;
+      _isPasswordValid = PasswordValidator.isStrong(_passwordController.text);
     });
   }
 
@@ -107,9 +107,9 @@ class _SignupScreenState extends State<SignupScreen> {
               right: 0,
               child: Container(
                 height: 200,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: const BorderRadius.only(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
@@ -232,15 +232,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               )
                             : null,
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor insira seu email';
-                        }
-                        if (!value.contains('@')) {
-                          return 'Por favor insira um email válido';
-                        }
-                        return null;
-                      },
+                      validator: EmailValidator.validate,
                     ),
                     const SizedBox(height: 16),
 
@@ -274,15 +266,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           ),
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor insira sua senha';
-                        }
-                        if (value.length < 6) {
-                          return 'A senha deve ter pelo menos 6 caracteres';
-                        }
-                        return null;
-                      },
+                      validator: PasswordValidator.validate,
                     ),
                     const SizedBox(height: 24),
 
@@ -296,7 +280,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               _acceptedPrivacyPolicy = value ?? false;
                             });
                           },
-                          activeColor: const Color(0xFF005954),
+                          activeColor: AppColors.primary,
                         ),
                         Expanded(
                           child: RichText(
@@ -318,7 +302,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                     child: const Text(
                                       'Política de Privacidade',
                                       style: TextStyle(
-                                        color: Color(0xFF338b85),
+                                        color: AppColors.complementary,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -339,7 +323,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _signUp,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF005954),
+                          backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),

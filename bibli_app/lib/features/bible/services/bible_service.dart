@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:bibli_app/core/constants/app_constants.dart';
 
 class BibleService {
   static const String _base = 'https://bolls.life';
@@ -28,7 +29,7 @@ class BibleService {
     final t = translations[translation] ?? 'NVIPT';
     final uri = Uri.parse('$_base/get-books/$t/');
     final res = await http.get(uri);
-    if (res.statusCode != 200) return [];
+    if (res.statusCode != HttpStatusCodes.ok) return [];
     final List data = json.decode(res.body) as List;
 
     // A resposta contém: bookid, chronorder, name, chapters
@@ -56,7 +57,7 @@ class BibleService {
     final t = translations[translation] ?? 'NVIPT';
     final uri = Uri.parse('$_base/get-text/$t/$bookId/$chapter/');
     final res = await http.get(uri);
-    if (res.statusCode != 200) return [];
+    if (res.statusCode != HttpStatusCodes.ok) return [];
     final List data = json.decode(res.body) as List;
     return data.map((e) {
       final m = Map<String, dynamic>.from(e as Map);

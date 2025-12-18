@@ -17,9 +17,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
               right: 0,
               child: Container(
                 height: 150,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: const BorderRadius.only(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
@@ -210,30 +210,30 @@ class PrivacyPolicyScreen extends StatelessWidget {
                               color: const Color(0xFFE8F4F3),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Column(
+                            child: const Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   'Se você chegou até aqui, parabéns! Isso mostra que se importa com sua privacidade — e nós também',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     color: Color(0xFF005954),
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                const Text(
+                                SizedBox(height: 8),
+                                Text(
                                   'Conte conosco para uma jornada segura e abençoada com a Palavra.',
                                   style: TextStyle(color: Color(0xFF005954)),
                                 ),
-                                const SizedBox(height: 8),
-                                const Text(
+                                SizedBox(height: 8),
+                                Text(
                                   'Equipe BibliApp',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: Color(0xFF005954),
                                   ),
                                 ),
-                                const Text(
+                                Text(
                                   'privacidade@bibliapp.com',
                                   style: TextStyle(
                                     color: Color(0xFF338b85),

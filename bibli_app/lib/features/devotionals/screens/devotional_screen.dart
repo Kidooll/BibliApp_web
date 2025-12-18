@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/devotionals/models/devotional.dart';
 import 'package:bibli_app/features/devotionals/services/devotional_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
+import 'package:bibli_app/core/services/log_service.dart';
 
 class DevotionalScreen extends StatefulWidget {
   final int? devotionalId; // Se null, mostra o devocional do dia
@@ -79,9 +81,7 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
             }
           }
         } else {
-          print(
-            'Devocional já foi lido hoje: ${devotional.id} - Não será marcado novamente',
-          );
+          LogService.info('Devocional já lido hoje: ${devotional.id}', 'DevotionalScreen');
         }
       }
 
@@ -99,11 +99,11 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
   void _showXpGainedAnimation() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: const Row(
           children: [
-            const Icon(Icons.star, color: Colors.amber),
-            const SizedBox(width: 8),
-            const Text(
+            Icon(Icons.star, color: Colors.amber),
+            SizedBox(width: 8),
+            Text(
               '+8 XP ganho!',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -112,7 +112,7 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
             ),
           ],
         ),
-        backgroundColor: const Color(0xFF005954),
+        backgroundColor: AppColors.primary,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -170,7 +170,7 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF005954)),
+              child: CircularProgressIndicator(color: AppColors.primary),
             )
           : _devotional == null
           ? const Center(
@@ -209,7 +209,7 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF5dc1b9),
+                        color: AppColors.analogous,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
@@ -243,15 +243,15 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
 
                   // Seção: Devocional
                   if (_devotional!.reflection != null) ...[
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.lightbulb_outline,
-                          color: Color(0xFF005954),
+                          color: AppColors.primary,
                           size: 20,
                         ),
-                        const SizedBox(width: 8),
-                        const Text(
+                        SizedBox(width: 8),
+                        Text(
                           'Devocional',
                           style: TextStyle(
                             fontSize: 18,
@@ -275,15 +275,15 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
 
                   // Seção: Como Colocar em prática
                   if (_devotional!.practicalApplication != null) ...[
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.check_circle_outline,
-                          color: Color(0xFF005954),
+                          color: AppColors.primary,
                           size: 20,
                         ),
-                        const SizedBox(width: 8),
-                        const Text(
+                        SizedBox(width: 8),
+                        Text(
                           'Como Colocar em prática',
                           style: TextStyle(
                             fontSize: 18,
@@ -307,15 +307,15 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
 
                   // Seção: Oração
                   if (_devotional!.prayer != null) ...[
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.favorite,
-                          color: Color(0xFF005954),
+                          color: AppColors.primary,
                           size: 20,
                         ),
-                        const SizedBox(width: 8),
-                        const Text(
+                        SizedBox(width: 8),
+                        Text(
                           'Oração',
                           style: TextStyle(
                             fontSize: 18,

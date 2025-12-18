@@ -11,6 +11,8 @@ import '../../../features/gamification/services/gamification_service.dart';
 import '../../../features/quotes/screens/quote_screen.dart';
 import '../services/missions_service.dart';
 import '../services/weekly_challenges_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
+import 'package:bibli_app/core/services/log_service.dart';
 
 class MissionsScreen extends StatefulWidget {
   const MissionsScreen({super.key});
@@ -28,6 +30,7 @@ class _MissionsScreenState extends State<MissionsScreen>
   StreamSubscription<String>? _gamificationSub;
   bool _isRefreshing = false;
   bool _isDisposed = false;
+  int _selectedTabIndex = 0; // 0: Diárias, 1: Semanais, 2: Conquistas
 
   Level? _currentLevel;
   int _totalXp = 0;
@@ -134,32 +137,36 @@ class _MissionsScreenState extends State<MissionsScreen>
       final recentXp = await GamificationService.getRecentXpTransactions();
       final username = await _fetchUsername();
 
-      setState(() {
-        _totalXp = totalXp;
-        _currentLevel = currentLevel;
-        _xpToNextLevel = xpToNextLevel;
-        _achievements = achievements;
-        _unlockedAchievements = unlockedAchievements;
-        _userStats = userStats;
-        _levels = levels;
-        _coins = coins;
-        _recentXp = recentXp;
-        _username = username;
-        _todaysQuote = todaysQuote;
-        _todayMissions = todayMissions;
-        _weeklyProgress = weekly;
-        _upcoming = upcoming;
-        _recent = recent;
-        _isLoading = false;
-      });
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _totalXp = totalXp;
+          _currentLevel = currentLevel;
+          _xpToNextLevel = xpToNextLevel;
+          _achievements = achievements;
+          _unlockedAchievements = unlockedAchievements;
+          _userStats = userStats;
+          _levels = levels;
+          _coins = coins;
+          _recentXp = recentXp;
+          _username = username;
+          _todaysQuote = todaysQuote;
+          _todayMissions = todayMissions;
+          _weeklyProgress = weekly;
+          _upcoming = upcoming;
+          _recent = recent;
+          _isLoading = false;
+        });
+      }
 
       // Iniciar animação da barra de XP
       _xpAnimationController.forward();
-    } catch (e) {
-      print('Erro ao carregar dados: $e');
-      setState(() {
-        _isLoading = false;
-      });
+    } catch (e, stack) {
+      LogService.error('Erro ao carregar dados', e, stack, 'MissionsScreen');
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -221,11 +228,11 @@ class _MissionsScreenState extends State<MissionsScreen>
         try {
           _xpAnimationController.forward(from: 0);
         } catch (_) {
-          // Controller pode estar disposed em corrida de navegação; ignore.
+          // Controller pode estar disposed
         }
       }
-    } catch (e) {
-      print('Erro ao atualizar gamificação: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao atualizar gamificação', e, stack, 'MissionsScreen');
     } finally {
       _isRefreshing = false;
     }
@@ -253,30 +260,28 @@ class _MissionsScreenState extends State<MissionsScreen>
       body: SafeArea(
         child: _isLoading
             ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF005954)),
+                child: CircularProgressIndicator(color: AppColors.primary),
               )
-            : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildHeaderCard(),
-                    const SizedBox(height: 12),
-                    _buildXpCard(),
-                    const SizedBox(height: 16),
-                    _buildMilestoneList(),
-                    const SizedBox(height: 16),
-                    _buildXpHistory(),
-                    const SizedBox(height: 16),
-                    _buildDailyMissionsSection(),
-                    const SizedBox(height: 16),
-                    _buildWeeklyChallengesSection(),
-                    const SizedBox(height: 16),
-                    _buildShareCta(),
-                    const SizedBox(height: 16),
-                    _buildAchievementsRecentSection(),
-                  ],
-                ),
+            : Column(
+                children: [
+                  // Header fixo
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _buildHeaderCard(),
+                        const SizedBox(height: 12),
+                        _buildXpCard(),
+                        const SizedBox(height: 16),
+                        _buildTabBar(),
+                      ],
+                    ),
+                  ),
+                  // Conteúdo das tabs
+                  Expanded(
+                    child: _buildTabContent(),
+                  ),
+                ],
               ),
       ),
     );
@@ -609,109 +614,251 @@ class _MissionsScreenState extends State<MissionsScreen>
   }
 
   int _getMaxXpForLevel(int level) {
-    final levelRequirements = [0, 150, 400, 750, 1200];
+    const levelRequirements = LevelRequirements.requirements;
     if (level >= 5) return 0;
     return levelRequirements[level] - levelRequirements[level - 1];
   }
 
   int _getCurrentXpInLevel(int level) {
-    final levelRequirements = [0, 150, 400, 750, 1200];
+    const levelRequirements = LevelRequirements.requirements;
     if (level >= 5) return 0;
     final levelStartXp = levelRequirements[level - 1];
     return _totalXp - levelStartXp;
   }
 
   Widget _buildWeeklyChallengesSection() {
+    if (_weeklyProgress.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.event_available,
+        title: 'Nenhum desafio ativo',
+        subtitle: 'Novos desafios semanais em breve!',
+      );
+    }
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Desafios Semanais',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF005954),
+      children: _weeklyProgress.map((row) {
+        final ch = row['weekly_challenges'] as Map<String, dynamic>? ?? {};
+        final title = ch['title'] as String? ?? 'Desafio';
+        final description = ch['description'] as String? ?? '';
+        final target = ch['target_value'] as int? ?? 1;
+        final progress = row['current_progress'] as int? ?? 0;
+        final done = row['is_completed'] == true;
+        final xp = ch['xp_reward'] as int? ?? 0;
+        final type = ch['challenge_type'] as String? ?? 'reading';
+
+        final pct = (target > 0) ? (progress / target).clamp(0, 1).toDouble() : 0.0;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: done 
+                ? [AppColors.primary.withOpacity(0.1), AppColors.complementary.withOpacity(0.1)]
+                : [Colors.white, Colors.white],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: done ? Border.all(color: AppColors.primary, width: 2) : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 12),
-        if (_weeklyProgress.isEmpty)
-          const Text('Nenhum desafio semanal ativo.')
-        else
-          Column(
-            children: _weeklyProgress.map((row) {
-              final ch =
-                  row['weekly_challenges'] as Map<String, dynamic>? ?? {};
-              final title = ch['title'] as String? ?? 'Desafio';
-              final description = ch['description'] as String? ?? '';
-              final target = ch['target_value'] as int? ?? 1;
-              final progress = row['current_progress'] as int? ?? 0;
-              final done = row['is_completed'] == true;
-              final xp = ch['xp_reward'] as int? ?? 0;
-
-              final pct = (target > 0)
-                  ? (progress / target).clamp(0, 1).toDouble()
-                  : 0.0;
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                // Progress Ring
+                SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        value: pct,
+                        strokeWidth: 6,
+                        backgroundColor: Colors.grey.shade200,
+                        valueColor: AlwaysStoppedAnimation(
+                          done ? Colors.green : AppColors.primary,
+                        ),
+                      ),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: done ? Colors.green : AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _getChallengeIcon(type),
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Conteúdo
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: done ? AppColors.primary : Colors.black87,
+                        ),
                       ),
                       const SizedBox(height: 4),
-                      Text(description),
-                      const SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: pct,
-                        backgroundColor: Colors.grey.shade200,
-                        valueColor: const AlwaysStoppedAnimation(
-                          Color(0xFF005954),
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
                         ),
-                        minHeight: 8,
                       ),
                       const SizedBox(height: 8),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Progresso: $progress/$target'),
-                          done
-                              ? ElevatedButton(
-                                  onPressed: () async {
-                                    final ok = await _weeklyService
-                                        .claimChallenge(row['id'] as int);
-                                    if (ok && mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Recompensa semanal: +$xp XP',
-                                          ),
-                                        ),
-                                      );
-                                      await _loadData();
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF005954),
-                                  ),
-                                  child: const Text('Resgatar'),
-                                )
-                              : Text('Recompensa: +$xp XP'),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '$progress/$target',
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '+$xp XP',
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
-              );
-            }).toList(),
+                // Botão de ação
+                if (done)
+                  ElevatedButton(
+                    onPressed: () async {
+                      final ok = await _weeklyService.claimChallenge(row['id'] as int);
+                      if (ok && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('🏆 Recompensa: +$xp XP'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        await _loadData();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    child: const Text(
+                      'Resgatar',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+              ],
+            ),
           ),
-      ],
+        );
+      }).toList(),
+    );
+  }
+
+  IconData _getChallengeIcon(String type) {
+    switch (type) {
+      case 'reading':
+        return Icons.menu_book;
+      case 'sharing':
+        return Icons.share;
+      case 'streak':
+        return Icons.local_fire_department;
+      case 'devotional':
+        return Icons.favorite;
+      default:
+        return Icons.flag;
+    }
+  }
+
+  Widget _buildEmptyState({required IconData icon, required String title, required String subtitle}) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 32),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
@@ -783,86 +930,204 @@ class _MissionsScreenState extends State<MissionsScreen>
   }
 
   Widget _buildDailyMissionsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Missões Diárias',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF005954),
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (_todayMissions.isEmpty)
-          const Text('Nenhuma missão para hoje.')
-        else
-          Column(
-            children: _todayMissions.map((m) {
-              final status = m['status'] as String? ?? 'pending';
-              final mission =
-                  m['daily_missions'] as Map<String, dynamic>? ?? {};
-              final title = mission['title'] as String? ?? 'Missão';
-              final description = mission['description'] as String? ?? '';
-              final xp = mission['xp_reward'] as int? ?? 0;
-              final canClaim = status == 'completed';
-              final claimed = status == 'claimed';
+    if (_todayMissions.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.flag,
+        title: 'Nenhuma missão hoje',
+        subtitle: 'Volte amanhã para novas missões!',
+      );
+    }
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: const Icon(Icons.flag, color: Color(0xFF005954)),
-                  title: Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(description),
-                  trailing: claimed
-                      ? const Icon(Icons.check_circle, color: Colors.green)
-                      : ElevatedButton(
-                          onPressed: canClaim
-                              ? () async {
-                                  final ok = await _missionsService
-                                      .claimMission(m['id'] as int);
-                                  if (!mounted) return;
-                                  if (ok) {
-                                    // Otimista: marca como claimed imediatamente
-                                    setState(() {
-                                      final idx = _todayMissions.indexWhere(
-                                        (it) => it['id'] == m['id'],
-                                      );
-                                      if (idx != -1) {
-                                        _todayMissions[idx]['status'] =
-                                            'claimed';
-                                      }
-                                    });
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Recompensa resgatada: +$xp XP',
-                                        ),
-                                        duration: const Duration(
-                                          milliseconds: 1500,
-                                        ),
-                                      ),
-                                    );
-                                    // Recarrega dados para manter consistência
-                                    await _loadData();
-                                  }
-                                }
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF005954),
-                          ),
-                          child: Text(canClaim ? 'Resgatar' : '+$xp XP'),
-                        ),
-                ),
-              );
-            }).toList(),
+    return Column(
+      children: _todayMissions.map((m) {
+        final status = m['status'] as String? ?? 'pending';
+        final mission = m['daily_missions'] as Map<String, dynamic>? ?? {};
+        final title = mission['title'] as String? ?? 'Missão';
+        final description = mission['description'] as String? ?? '';
+        final xp = mission['xp_reward'] as int? ?? 0;
+        final canClaim = status == 'completed';
+        final claimed = status == 'claimed';
+        final missionType = mission['mission_type'] as String? ?? 'general';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: claimed
+                  ? [Colors.green.withOpacity(0.1), Colors.green.withOpacity(0.05)]
+                  : canClaim
+                      ? [AppColors.primary.withOpacity(0.1), AppColors.complementary.withOpacity(0.1)]
+                      : [Colors.white, Colors.white],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: claimed 
+                ? Border.all(color: Colors.green, width: 2)
+                : canClaim 
+                    ? Border.all(color: AppColors.primary, width: 2)
+                    : Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-      ],
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                // Ícone da missão
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: claimed 
+                        ? Colors.green
+                        : canClaim 
+                            ? AppColors.primary
+                            : Colors.grey.shade300,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    claimed 
+                        ? Icons.check_circle
+                        : _getMissionIcon(missionType),
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Conteúdo
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: claimed ? Colors.green : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '+$xp XP',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Botão de ação
+                if (claimed)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'Concluída',
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  )
+                else if (canClaim)
+                  ElevatedButton(
+                    onPressed: () async {
+                      final ok = await _missionsService.claimMission(m['id'] as int);
+                      if (!mounted) return;
+                      if (ok) {
+                        setState(() {
+                          final idx = _todayMissions.indexWhere((it) => it['id'] == m['id']);
+                          if (idx != -1) {
+                            _todayMissions[idx]['status'] = 'claimed';
+                          }
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('🎆 Recompensa: +$xp XP'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        await _loadData();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    child: const Text(
+                      'Resgatar',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'Pendente',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
+  }
+
+  IconData _getMissionIcon(String type) {
+    switch (type) {
+      case 'devotional':
+        return Icons.menu_book;
+      case 'share':
+        return Icons.share;
+      case 'streak':
+        return Icons.local_fire_department;
+      case 'reading':
+        return Icons.auto_stories;
+      default:
+        return Icons.flag;
+    }
   }
 
   Widget _buildHeaderCard() {
@@ -991,7 +1256,7 @@ class _MissionsScreenState extends State<MissionsScreen>
     if (idx + 1 < thresholds.length) {
       nextThreshold = thresholds[idx + 1]['xp'] as int;
     } else {
-      final fallbackDelta = _xpToNextLevel > 0 ? _xpToNextLevel : 200;
+      final fallbackDelta = _xpToNextLevel > 0 ? _xpToNextLevel : LevelRequirements.defaultXpToNextLevel;
       nextThreshold = _totalXp + fallbackDelta;
     }
 
@@ -1063,6 +1328,15 @@ class _MissionsScreenState extends State<MissionsScreen>
   Widget _buildMilestoneList() {
     final milestones = _levels.isNotEmpty ? _levels : _staticMilestones();
     final currentLevelNumber = _currentLevel?.levelNumber ?? 0;
+    
+    // Ordenar milestones em ordem crescente
+    final sortedMilestones = List.from(milestones);
+    sortedMilestones.sort((a, b) {
+      final levelA = a is Level ? a.levelNumber : int.tryParse((a as Map<String, dynamic>)['level'] ?? '') ?? 0;
+      final levelB = b is Level ? b.levelNumber : int.tryParse((b as Map<String, dynamic>)['level'] ?? '') ?? 0;
+      return levelA.compareTo(levelB);
+    });
+    
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF6EA9A8),
@@ -1083,7 +1357,7 @@ class _MissionsScreenState extends State<MissionsScreen>
             ),
           ),
           const SizedBox(height: 12),
-          ...milestones.map(
+          ...sortedMilestones.map(
             (dynamic m) => Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: Row(
@@ -1153,29 +1427,53 @@ class _MissionsScreenState extends State<MissionsScreen>
     return [
       {
         'level': '1',
+        'title': 'Novato na Fé',
+        'description': 'Iniciou a jornada espiritual (0-100 XP)',
+      },
+      {
+        'level': '2',
         'title': 'Buscador',
-        'description': 'Descrição: Iniciou a jornada em busca de Deus.',
+        'description': 'Em busca de conhecimento (101-250 XP)',
+      },
+      {
+        'level': '3',
+        'title': 'Discípulo',
+        'description': 'Comprometido com o aprendizado (251-500 XP)',
+      },
+      {
+        'level': '4',
+        'title': 'Servo Fiel',
+        'description': 'Dedicado à prática diária (501-800 XP)',
       },
       {
         'level': '5',
-        'title': 'Discípulo',
-        'description':
-            'Descrição: Comprometido com o aprendizado e a prática diária.',
+        'title': 'Estudioso',
+        'description': 'Conhecedor das Escrituras (801-1200 XP)',
+      },
+      {
+        'level': '6',
+        'title': 'Sábio',
+        'description': 'Sabedoria espiritual (1201-1700 XP)',
+      },
+      {
+        'level': '7',
+        'title': 'Mestre',
+        'description': 'Mestre na Palavra (1701-2300 XP)',
+      },
+      {
+        'level': '8',
+        'title': 'Líder Espiritual',
+        'description': 'Líder e exemplo (2301-3000 XP)',
+      },
+      {
+        'level': '9',
+        'title': 'Mentor',
+        'description': 'Guia de outros (3001-4000 XP)',
       },
       {
         'level': '10',
-        'title': 'Guardião da Fé',
-        'description': 'Descrição: Defensor da verdade e fiel à Palavra.',
-      },
-      {
-        'level': '15',
-        'title': 'Sábio Espiritual',
-        'description': 'Descrição: Conhecedor das Escrituras.',
-      },
-      {
-        'level': '20',
-        'title': 'Mensageiro Divino',
-        'description': 'Descrição: Compartilha a Palavra com ousadia e amor.',
+        'title': 'Gigante da Fé',
+        'description': 'Máximo nível espiritual (4001+ XP)',
       },
     ];
   }
@@ -1198,14 +1496,18 @@ class _MissionsScreenState extends State<MissionsScreen>
         ..._levels.map((l) => {'level': l.levelNumber, 'xp': l.xpRequired}),
       ];
     }
-    // fallback
+    // Fallback usando valores do PRD
     return [
       {'level': 0, 'xp': 0},
-      {'level': 1, 'xp': 150},
-      {'level': 2, 'xp': 400},
-      {'level': 3, 'xp': 750},
-      {'level': 4, 'xp': 1200},
-      {'level': 5, 'xp': 1700},
+      {'level': 1, 'xp': 101},
+      {'level': 2, 'xp': 251},
+      {'level': 3, 'xp': 501},
+      {'level': 4, 'xp': 801},
+      {'level': 5, 'xp': 1201},
+      {'level': 6, 'xp': 1701},
+      {'level': 7, 'xp': 2301},
+      {'level': 8, 'xp': 3001},
+      {'level': 9, 'xp': 4001},
     ];
   }
 
@@ -1451,5 +1753,114 @@ class _MissionsScreenState extends State<MissionsScreen>
 
   bool _isLevelReached(int level, int currentLevel) {
     return level <= currentLevel;
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          _buildTabItem(0, '🎯', 'Diárias'),
+          _buildTabItem(1, '🏆', 'Semanais'),
+          _buildTabItem(2, '🏅', 'Conquistas'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabItem(int index, String emoji, String title) {
+    final isSelected = _selectedTabIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedTabIndex = index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                emoji,
+                style: const TextStyle(fontSize: 20),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                title,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabContent() {
+    switch (_selectedTabIndex) {
+      case 0:
+        return _buildDailyTab();
+      case 1:
+        return _buildWeeklyTab();
+      case 2:
+        return _buildAchievementsTab();
+      default:
+        return _buildDailyTab();
+    }
+  }
+
+  Widget _buildDailyTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildDailyMissionsSection(),
+          const SizedBox(height: 16),
+          _buildShareCta(),
+          const SizedBox(height: 16),
+          _buildXpHistory(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildWeeklyChallengesSection(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievementsTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildAchievementsRecentSection(),
+          const SizedBox(height: 16),
+          _buildMilestoneList(),
+        ],
+      ),
+    );
   }
 }

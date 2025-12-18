@@ -3,6 +3,7 @@ import 'package:bibli_app/features/devotionals/models/devotional.dart';
 import 'package:bibli_app/features/gamification/services/gamification_service.dart';
 import 'package:bibli_app/features/missions/services/missions_service.dart';
 import 'package:bibli_app/features/missions/services/weekly_challenges_service.dart';
+import 'package:bibli_app/core/services/log_service.dart';
 
 class DevotionalService {
   final SupabaseClient _supabase;
@@ -20,8 +21,8 @@ class DevotionalService {
           .single();
 
       return Devotional.fromJson(response);
-    } catch (e) {
-      print('Erro ao buscar devocional do dia: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao buscar devocional do dia', e, stack, 'DevotionalService');
       return null;
     }
   }
@@ -36,8 +37,8 @@ class DevotionalService {
           .single();
 
       return Devotional.fromJson(response);
-    } catch (e) {
-      print('Erro ao buscar devocional por ID: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao buscar devocional por ID', e, stack, 'DevotionalService');
       return null;
     }
   }
@@ -52,8 +53,8 @@ class DevotionalService {
           .limit(limit);
 
       return response.map((json) => Devotional.fromJson(json)).toList();
-    } catch (e) {
-      print('Erro ao buscar devocionais recentes: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao buscar devocionais recentes', e, stack, 'DevotionalService');
       return [];
     }
   }
@@ -71,25 +72,30 @@ class DevotionalService {
           !(await _hasAnyDevotionalReadToday(user.id, todayUtc));
 
       if (alreadyRead) {
-        print(
-          'Devocional já foi lido hoje: $devotionalId - Não será marcado novamente',
-        );
+        LogService.info('Devocional já lido hoje: $devotionalId', 'DevotionalService');
         return false;
       }
 
       // Inserir registro de leitura
+      final readAt = DateTime.now().toUtc().toIso8601String();
       try {
         await _supabase.from('read_devotionals').insert({
           'devotional_id': devotionalId,
           'user_profile_id': user.id,
-          'read_at': DateTime.now().toUtc().toIso8601String(),
+          'read_at': readAt,
+        });
+        
+        // Adicionar em reading_history para o calendário
+        await _supabase.from('reading_history').insert({
+          'user_id': user.id,
+          'devotional_id': devotionalId,
+          'read_at': readAt,
+          'read_date': DateTime.now().toIso8601String().split('T')[0],
         });
       } on PostgrestException catch (e) {
         // Tratamento de unicidade (unique_violation)
         if (e.code == '23505') {
-          print(
-            'Devocional já lido hoje (único por dia) capturado pelo banco: $devotionalId',
-          );
+          LogService.info('Devocional já lido (constraint)', 'DevotionalService');
           return false;
         }
         rethrow;
@@ -105,18 +111,22 @@ class DevotionalService {
       try {
         final missions = MissionsService(_supabase);
         await missions.completeMissionByCode('read_today_devotional');
-      } catch (_) {}
+      } catch (e, stack) {
+        LogService.error('Erro ao completar missão', e, stack, 'DevotionalService');
+      }
 
       // Incrementar desafios semanais (reading)
       try {
         final weekly = WeeklyChallengesService(_supabase);
         await weekly.incrementByType('reading', step: 1);
-      } catch (_) {}
+      } catch (e, stack) {
+        LogService.error('Erro ao incrementar desafio', e, stack, 'DevotionalService');
+      }
 
-      print('Devocional marcado como lido com sucesso: $devotionalId');
+      LogService.info('Devocional marcado como lido: $devotionalId', 'DevotionalService');
       return true;
-    } catch (e) {
-      print('Erro ao marcar devocional como lido: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao marcar devocional', e, stack, 'DevotionalService');
       return false;
     }
   }
@@ -151,8 +161,8 @@ class DevotionalService {
           .maybeSingle();
 
       return response != null;
-    } catch (e) {
-      print('Erro ao verificar se devocional foi lido hoje: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao verificar leitura', e, stack, 'DevotionalService');
       return false;
     }
   }

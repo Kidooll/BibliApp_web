@@ -1,6 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bibli_app/features/gamification/services/gamification_service.dart';
+import 'package:bibli_app/core/services/log_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
 
 class AuthService {
   final SupabaseClient supabase;
@@ -49,9 +51,9 @@ class AuthService {
       await prefs.remove('last_activity_date');
       await prefs.remove('devotional_cache');
 
-      print('Cache local limpo com sucesso');
-    } catch (e) {
-      print('Erro ao limpar cache local: $e');
+      LogService.info('Cache local limpo', 'AuthService');
+    } catch (e, stack) {
+      LogService.error('Erro ao limpar cache', e, stack, 'AuthService');
     }
   }
 
@@ -81,7 +83,7 @@ class AuthService {
     );
 
     if (response.user == null) {
-      throw AuthException('Falha ao criar conta');
+      throw const AuthException('Falha ao criar conta');
     }
 
     // Criar perfil do usuário automaticamente
@@ -92,12 +94,12 @@ class AuthService {
         'total_devotionals_read': 0,
         'total_xp': 0,
         'current_level': 1,
-        'xp_to_next_level': 100,
+        'xp_to_next_level': LevelRequirements.initialXpToNextLevel,
         'coins': 0,
         'weekly_goal': 7,
       });
-    } catch (e) {
-      print('Erro ao criar perfil do usuário: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao criar perfil', e, stack, 'AuthService');
       // Não vamos falhar o cadastro se o perfil não for criado
     }
   }
@@ -122,13 +124,13 @@ class AuthService {
           'total_devotionals_read': 0,
           'total_xp': 0,
           'current_level': 1,
-          'xp_to_next_level': 100,
+          'xp_to_next_level': LevelRequirements.initialXpToNextLevel,
           'coins': 0,
           'weekly_goal': 7,
         });
       }
-    } catch (e) {
-      print('Erro ao verificar/criar perfil do usuário: $e');
+    } catch (e, stack) {
+      LogService.error('Erro ao verificar perfil', e, stack, 'AuthService');
     }
   }
 

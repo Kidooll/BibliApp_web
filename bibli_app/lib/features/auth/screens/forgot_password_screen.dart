@@ -56,9 +56,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               right: 0,
               child: Container(
                 height: 200,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: const BorderRadius.only(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
@@ -213,15 +213,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             width: 1,
                           ),
                         ),
-                        child: Column(
+                        child: const Column(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.check_circle,
                               color: Color(0xFF005954),
                               size: 48,
                             ),
-                            const SizedBox(height: 16),
-                            const Text(
+                            SizedBox(height: 16),
+                            Text(
                               'Email Enviado!',
                               style: TextStyle(
                                 fontSize: 20,
@@ -229,8 +229,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                 color: Color(0xFF005954),
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            const Text(
+                            SizedBox(height: 8),
+                            Text(
                               'Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.',
                               style: TextStyle(
                                 fontSize: 14,

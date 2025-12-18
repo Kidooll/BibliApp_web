@@ -160,4 +160,66 @@ class HomeService {
       return 'Boa noite';
     }
   }
+
+  Future<Devotional?> getDevotionalByDate(DateTime date) async {
+    try {
+      final dateStr = date.toIso8601String().split('T')[0];
+      final response = await supabase
+          .from('devotionals')
+          .select()
+          .eq('published_date', dateStr)
+          .maybeSingle();
+
+      if (response != null) {
+        return Devotional.fromJson(response);
+      }
+      return null;
+    } catch (e) {
+      print('Erro ao buscar devocional da data $date: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, String?>> getQuoteByDate(DateTime date) async {
+    try {
+      final dateStr = date.toIso8601String().split('T')[0];
+      final response = await supabase
+          .from('devotionals')
+          .select('citation, author')
+          .eq('published_date', dateStr)
+          .maybeSingle();
+
+      if (response != null) {
+        return {'citation': response['citation'], 'author': response['author']};
+      }
+      return {
+        'citation': 'Nenhuma citação disponível para esta data.',
+        'author': null,
+      };
+    } catch (e) {
+      print('Erro ao buscar citação da data $date: $e');
+      return {
+        'citation': 'Erro ao carregar citação.',
+        'author': null,
+      };
+    }
+  }
+
+  Future<Set<DateTime>> getReadDates(String userId) async {
+    try {
+      final response = await supabase
+          .from('reading_history')
+          .select('read_at')
+          .eq('user_id', userId)
+          .order('read_at', ascending: false);
+
+      return response.map((item) {
+        final dateStr = item['read_at'] as String;
+        return DateTime.parse(dateStr);
+      }).toSet();
+    } catch (e) {
+      print('Erro ao buscar datas de leitura: $e');
+      return {};
+    }
+  }
 }

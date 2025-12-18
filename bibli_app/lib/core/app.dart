@@ -8,6 +8,7 @@ import 'package:bibli_app/features/onboarding/screens/welcome_screen.dart';
 import 'package:bibli_app/features/onboarding/screens/reminders_screen.dart';
 import 'package:bibli_app/features/navigation/screens/main_navigation_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BibliApp extends StatelessWidget {
   const BibliApp({super.key});
@@ -37,9 +38,27 @@ class BibliApp extends StatelessWidget {
           final currentUser = supabase.auth.currentUser;
           final hasSession = currentUser != null;
 
-          // Se há uma sessão ativa, mostrar a tela principal
+          // Se há uma sessão ativa, verificar se é primeira vez
           if (hasSession) {
-            return const MainNavigationScreen();
+            return FutureBuilder<bool>(
+              future: _checkFirstTime(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(
+                      child: CircularProgressIndicator(color: Color(0xFF005954)),
+                    ),
+                  );
+                }
+                
+                final isFirstTime = snapshot.data ?? false;
+                if (isFirstTime) {
+                  return const RemindersScreen();
+                }
+                
+                return const MainNavigationScreen();
+              },
+            );
           }
 
           // Caso contrário, mostrar a tela de boas-vindas
@@ -56,5 +75,18 @@ class BibliApp extends StatelessWidget {
         '/home': (context) => const MainNavigationScreen(),
       },
     );
+  }
+
+  Future<bool> _checkFirstTime() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasConfiguredReminders = prefs.getBool('reminder_configured') ?? false;
+      final hasSkippedReminders = prefs.getBool('reminder_skipped') ?? false;
+      
+      // Se não configurou nem pulou, é primeira vez
+      return !hasConfiguredReminders && !hasSkippedReminders;
+    } catch (_) {
+      return false;
+    }
   }
 }
