@@ -351,67 +351,39 @@ class _QuoteScreenState extends State<QuoteScreen> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Imagem de fundo com GestureDetector
+                // Imagem de fundo
                 Positioned.fill(
-                  child: GestureDetector(
-                    onTap: _changeBackground,
-                    child: CachedNetworkImage(
-                      imageUrl: _currentBackgroundUrl,
-                      key: ValueKey(_currentBackgroundUrl),
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Shimmer.fromColors(
-                        baseColor: const Color(0xFF2D4A3E),
-                        highlightColor: const Color(0xFF338b85),
-                        child: Container(
-                          color: const Color(0xFF2D4A3E),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
+                  child: CachedNetworkImage(
+                    imageUrl: _currentBackgroundUrl,
+                    key: ValueKey(_currentBackgroundUrl),
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Shimmer.fromColors(
+                      baseColor: const Color(0xFF2D4A3E),
+                      highlightColor: const Color(0xFF338b85),
+                      child: Container(
                         color: const Color(0xFF2D4A3E),
-                        child: const Icon(
-                          Icons.error_outline,
-                          color: Colors.red,
-                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: const Color(0xFF2D4A3E),
+                      child: const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
                       ),
                     ),
                   ),
                 ),
-                // Overlay escuro
-                Container(color: Colors.black.withAlpha(128)),
+                // Overlay escuro com GestureDetector
+                GestureDetector(
+                  onTap: _changeBackground,
+                  child: Container(color: Colors.black.withAlpha(128)),
+                ),
                 // Conteúdo principal
                 SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        // Indicador de imagens
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withAlpha(128),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.touch_app, color: Colors.white70, size: 16),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '${_currentImageIndex + 1}/8',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
                         const Spacer(),
                         Text(
                           widget.citation ??
@@ -441,7 +413,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
                 ),
                 // Logo no topo
                 Positioned(
-                  top: 30,
+                  top: 50,
                   left: 0,
                   right: 0,
                   child: Opacity(
@@ -453,6 +425,39 @@ class _QuoteScreenState extends State<QuoteScreen> {
                       cacheWidth: 120,
                       cacheHeight: 120,
                     ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Indicador no topo (fora da captura)
+          Positioned(
+            top: 50,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withAlpha(128),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.touch_app, color: Colors.white70, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Toque: ${_currentImageIndex + 1}/8',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

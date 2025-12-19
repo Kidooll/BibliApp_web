@@ -806,10 +806,14 @@ class _MissionsScreenState extends State<MissionsScreen>
         return Icons.menu_book;
       case 'sharing':
         return Icons.share;
+      case 'study':
+        return Icons.auto_stories;
+      case 'favorite':
+        return Icons.favorite;
+      case 'note':
+        return Icons.edit_note;
       case 'streak':
         return Icons.local_fire_department;
-      case 'devotional':
-        return Icons.favorite;
       default:
         return Icons.flag;
     }

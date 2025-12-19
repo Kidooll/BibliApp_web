@@ -14,8 +14,8 @@ import 'package:bibli_app/features/gamification/services/achievement_overlay_ser
 import 'package:bibli_app/core/constants/app_constants.dart';
 import 'package:bibli_app/core/widgets/loading_widget.dart';
 import 'package:bibli_app/core/widgets/animations.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:bibli_app/core/services/monitoring_service.dart';
+import 'package:bibli_app/features/reading_plans/screens/reading_plans_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -784,13 +784,32 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Recomendações do Editor',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2D2D2D),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Planos de Leitura',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2D2D2D),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ReadingPlansScreen(),
+                  ),
+                );
+              },
+              child: const Text(
+                'Ver todos',
+                style: TextStyle(color: AppColors.primary),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         SizedBox(
@@ -798,17 +817,23 @@ class _HomeScreenState extends State<HomeScreen> {
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
-              _buildRecommendationCard(
-                title: 'A Disciplina como...',
-                imageUrl: 'assets/images/recommendation1.png',
+              _buildReadingPlanCard(
+                title: 'Salmos em 30 Dias',
+                description: '150 capítulos',
+                icon: Icons.auto_stories,
+                color: const Color(0xFF5E9EA0),
               ),
-              _buildRecommendationCard(
-                title: 'A Mulher Virtuosa e...',
-                imageUrl: 'assets/images/recommendation2.png',
+              _buildReadingPlanCard(
+                title: 'Provérbios',
+                description: '31 capítulos',
+                icon: Icons.lightbulb_outline,
+                color: const Color(0xFF7B9E89),
               ),
-              _buildRecommendationCard(
-                title: 'Foco',
-                imageUrl: 'assets/images/recommendation3.png',
+              _buildReadingPlanCard(
+                title: 'Novo Testamento',
+                description: '260 capítulos',
+                icon: Icons.menu_book,
+                color: const Color(0xFF8B7E74),
               ),
             ],
           ),
@@ -817,65 +842,77 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildRecommendationCard({
+  Widget _buildReadingPlanCard({
     required String title,
-    required String imageUrl,
+    required String description,
+    required IconData icon,
+    required Color color,
   }) {
-    return Container(
-      width: 160,
-      margin: const EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF5dc1b9),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ReadingPlansScreen(),
+          ),
+        );
+      },
+      child: Container(
+        width: 160,
+        margin: const EdgeInsets.only(right: 16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [color, color.withOpacity(0.7)],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                child: Icon(icon, color: Colors.white, size: 32),
               ),
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: AppColors.complementary.withOpacity(0.3),
-                  child: const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primary,
-                      strokeWidth: 2,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: AppColors.complementary.withOpacity(0.3),
-                  child: const Icon(
-                    Icons.image_not_supported,
-                    color: AppColors.primary,
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2D2D2D),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

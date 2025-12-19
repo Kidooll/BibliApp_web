@@ -291,5 +291,84 @@ AppDimensions.paddingMedium
 SELECT recalculate_user_levels();
 ```
 
-## Status: PRONTO PARA PRODUÇÃO (98%)
-**Próximo**: Executar SQL de correção de níveis + Deploy
+## ✅ PASSO 11 CONCLUÍDO: Calendário Funcional (100%)
+
+### Calendário na Home
+- ✅ **Seletor de semana**: Clique em dia carrega devocional
+- ✅ **Modal completo**: Navegação entre meses
+- ✅ **Dias lidos marcados**: Bolinha verde + fundo claro
+- ✅ **Tabela reading_history**: Criada e populada
+- ✅ **Migração automática**: Dados de read_devotionals portados
+- ✅ **Visual profissional**: Legenda, hoje destacado, futuro desabilitado
+
+## 📋 Decisões de Produção
+
+### Monitoramento
+- ⏸️ **Sentry em espera**: Não prioritário agora
+- ✅ **Estrutura pronta**: Basta ativar DSN quando necessário
+
+### Deploy
+- ✅ **SQLs executados**: fix_levels, reading_history, analytics
+- ✅ **App pessoal**: Não vai para Play Store
+- ✅ **Políticas**: Privacidade e Termos já no app
+- ✅ **Testes**: Sempre em dispositivo real com dados reais
+
+### Desafios Semanais
+- ✅ **Sistema atual**: Templates funcionando perfeitamente
+- 🔮 **Próxima evolução**: n8n + IA quando escalar
+
+## ✅ PASSO 11 CONCLUÍDO: Calendário Funcional (100%)
+
+### Calendário na Home
+- ✅ **Seletor de semana**: Clique em dia carrega devocional
+- ✅ **Modal completo**: Navegação entre meses
+- ✅ **Dias lidos marcados**: Bolinha verde + fundo claro
+- ✅ **Tabela reading_history**: Criada e populada
+- ✅ **Migração automática**: Dados de read_devotionals portados
+- ✅ **Visual profissional**: Legenda, hoje destacado, futuro desabilitado
+
+## ✅ PASSO 12 CONCLUÍDO: n8n + IA para Desafios (100%)
+
+### Workflow n8n Implementado
+- ✅ **Trigger semanal**: Segunda-feira 00:00
+- ✅ **Limpeza automática**: Desativa desafios expirados
+- ✅ **Geração com IA**: OpenAI gpt-4o-mini gera 5 desafios
+- ✅ **Tipos variados**: reading, sharing, study, favorite, note
+- ✅ **Temas sazonais**: Natal, Páscoa, Dia dos Pais, etc
+- ✅ **Inserção automática**: Direto em weekly_challenges
+- ✅ **HTTP Request**: Via Supabase REST API (AWS-friendly)
+
+### SQL Functions
+- ✅ **cleanup_expired_challenges()**: Desativa end_date < hoje
+- ✅ **cleanup_old_progress()**: Remove progresso > 90 dias
+- ✅ **maintain_challenges()**: Função combinada
+- ✅ **Chamada via REST**: /rest/v1/rpc/maintain_challenges
+
+### Tabelas Corretas
+- ✅ **weekly_challenges**: Única tabela de desafios (CORRETA)
+- ✅ **weekly_challenges_published**: Sistema de publicação
+- ✅ **user_challenge_progress**: Progresso do usuário
+- ❌ **weekly_challenge_templates**: NÃO é usada (pode deletar)
+
+## Status: PRONTO PARA PRODUÇÃO (100%)
+**Próximo**: Deploy do workflow n8n na AWS
+
+## 🔮 Roadmap Futuro (Planejado)
+
+### Features em Planejamento
+1. **Planos de Leitura**: Sistema completo com progresso
+2. **Favoritos Expandido**: Versículos + Devocionais categorizados
+3. **Anotações Avançadas**: Contagem de palavras, tags, exportação
+4. **Desafios Mensais**: Hardcore challenges (100-500 XP)
+   - Leitura de livro completo + resumo
+   - Anotações 100+ palavras
+   - Completar plano de leitura
+   - Meta: 20 desafios semanais/mês
+   - Streak de 30 dias
+
+### Integração com Desafios Atuais
+- `study` → Vinculado a planos de leitura
+- `favorite` → Tipos específicos (verse/devotional)
+- `note` → Validação por word_count
+
+Ver detalhes completos em: `.amazonq/rules/memory-bank/roadmap-futuro.md`

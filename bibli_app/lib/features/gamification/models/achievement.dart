@@ -54,16 +54,16 @@ class Achievement {
 
   factory Achievement.fromJson(Map<String, dynamic> json) {
     return Achievement(
-      id: json['id'],
-      title: json['title'],
-      description: json['description'],
-      icon: json['icon'],
-      xpReward: json['xpReward'],
-      type: AchievementType.values.byName(json['type']),
-      targetValue: json['targetValue'],
-      isUnlocked: json['isUnlocked'] ?? false,
+      id: json['id'].toString(),
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      icon: json['icon'] as String? ?? 'emoji_events',
+      xpReward: json['xpReward'] as int? ?? 0,
+      type: AchievementType.values.byName(json['type'] as String? ?? 'special'),
+      targetValue: json['targetValue'] as int? ?? 1,
+      isUnlocked: json['isUnlocked'] as bool? ?? false,
       unlockedAt: json['unlockedAt'] != null 
-          ? DateTime.parse(json['unlockedAt']) 
+          ? DateTime.parse(json['unlockedAt'] as String) 
           : null,
     );
   }
