@@ -30,6 +30,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
   late int _currentImageIndex;
   List<String> _backgroundImages = [];
   bool _isLoading = true;
+  int _failedImageAttempts = 0;
 
   @override
   void initState() {
@@ -41,10 +42,12 @@ class _QuoteScreenState extends State<QuoteScreen> {
     try {
       _backgroundImages = await _getWeeklyImages();
       _currentImageIndex = Random().nextInt(_backgroundImages.length);
+      _failedImageAttempts = 0;
     } catch (e) {
       // Fallback para imagens fixas em caso de erro
       _backgroundImages = _getFallbackImages();
       _currentImageIndex = Random().nextInt(_backgroundImages.length);
+      _failedImageAttempts = 0;
     }
     if (mounted) {
       setState(() {
@@ -191,6 +194,30 @@ class _QuoteScreenState extends State<QuoteScreen> {
 
   String get _currentBackgroundUrl => 
       _backgroundImages.isNotEmpty ? _backgroundImages[_currentImageIndex] : '';
+
+  void _handleImageError() {
+    if (_backgroundImages.isEmpty) {
+      setState(() {
+        _backgroundImages = _getFallbackImages();
+        _currentImageIndex = 0;
+        _failedImageAttempts = 0;
+      });
+      return;
+    }
+    if (_failedImageAttempts < _backgroundImages.length - 1) {
+      setState(() {
+        _failedImageAttempts += 1;
+        _currentImageIndex = (_currentImageIndex + 1) % _backgroundImages.length;
+      });
+      return;
+    }
+    // Todas falharam, troca para fallback
+    setState(() {
+      _backgroundImages = _getFallbackImages();
+      _currentImageIndex = 0;
+      _failedImageAttempts = 0;
+    });
+  }
 
   Future<void> _shareQuote() async {
     try {
@@ -366,9 +393,16 @@ class _QuoteScreenState extends State<QuoteScreen> {
                     ),
                     errorWidget: (context, url, error) => Container(
                       color: const Color(0xFF2D4A3E),
-                      child: const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
+                      child: Builder(
+                        builder: (context) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _handleImageError();
+                          });
+                          return const Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                          );
+                        },
                       ),
                     ),
                   ),

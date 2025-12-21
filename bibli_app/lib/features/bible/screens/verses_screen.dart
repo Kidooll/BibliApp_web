@@ -46,10 +46,8 @@ class _VersesScreenState extends State<VersesScreen> {
   int _chapter = 1;
   List<Map<String, dynamic>> _verses = [];
 
-  String get _displayBookName {
-    final normalized = _normalizeBookName(widget.bookName);
-    return _wrapLongName(normalized, maxChars: 18);
-  }
+  String get _displayBookName =>
+      BibleService.formatBookNameForHeader(widget.bookName, maxChars: 18);
 
   @override
   void initState() {
@@ -142,35 +140,6 @@ class _VersesScreenState extends State<VersesScreen> {
     setState(() {
       _fontScale = (_fontScale + 0.1).clamp(0.9, 1.6);
     });
-  }
-
-  String _normalizeBookName(String raw) {
-    final text = raw.trim();
-    final lower = text.toLowerCase();
-
-    // Normaliza Apocalipse e variações
-    final apoc = RegExp(r'apocalipse|revelação\s+de\s+deus\s+a\s+joão', caseSensitive: false);
-    if (apoc.hasMatch(lower)) return 'Apocalipse';
-
-    // Remove parênteses e subtítulos após dois-pontos
-    var normalized = text.replaceAll(RegExp(r'\s*\(.*?\)'), '');
-    normalized = normalized.split(':').first;
-
-    // Colapsa espaços extras
-    normalized = normalized.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return normalized.isEmpty ? text : normalized;
-  }
-
-  String _wrapLongName(String name, {int maxChars = 18}) {
-    if (name.length <= maxChars) return name;
-    final idx = name.lastIndexOf(' ', maxChars);
-    if (idx > 0) {
-      final first = name.substring(0, idx).trim();
-      final rest = name.substring(idx).trim();
-      return '$first\n$rest';
-    }
-    // Sem espaços úteis, usa ellipsis
-    return '${name.substring(0, maxChars)}...';
   }
 
   Future<void> _showVerseActions({
@@ -285,7 +254,7 @@ class _VersesScreenState extends State<VersesScreen> {
                   ),
                   const SizedBox(width: 8),
                   SizedBox(
-                    width: 88,
+                    width: 76,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [

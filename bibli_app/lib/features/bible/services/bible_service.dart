@@ -35,6 +35,45 @@ class BibleService {
         .trim();
   }
 
+  // Normaliza nome de livros longos/variantes (ex.: Apocalipse)
+  String _normalizeBookName(String raw) {
+    final text = raw.trim();
+    final lower = text.toLowerCase();
+
+    // Normalizações específicas para NTLH e variantes longas
+    const ntlhMap = {
+      'primeira carta de paulo aos coríntios': '1 Coríntios',
+      'segunda carta de paulo aos coríntios': '2 Coríntios',
+      'primeira carta de paulo aos tessalonicenses': '1 Tessalonicenses',
+      'segunda carta de paulo aos tessalonicenses': '2 Tessalonicenses',
+      'primeira carta de paulo aos tesselonicenses': '1 Tessalonicenses',
+      'segunda carta de paulo aos tesselonicenses': '2 Tessalonicenses',
+    };
+    if (ntlhMap.containsKey(lower)) {
+      return ntlhMap[lower]!;
+    }
+
+    final apoc = RegExp(r'apocalipse|revelação\s+de\s+deus\s+a\s+joão',
+        caseSensitive: false);
+    if (apoc.hasMatch(lower)) return 'Apocalipse';
+    // Remove parênteses e subtítulos
+    var normalized = text.replaceAll(RegExp(r'\s*\(.*?\)'), '');
+    normalized = normalized.split(':').first;
+    // Colapsa espaços
+    normalized = normalized.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return normalized.isEmpty ? text : normalized;
+  }
+
+  // Encurta nomes muito longos para evitar overflow em qualquer tela.
+  String _shortenBookName(String name, {int maxChars = 22}) {
+    if (name.length <= maxChars) return name;
+    final idx = name.lastIndexOf(' ', maxChars);
+    if (idx > 0) {
+      return '${name.substring(0, idx)}...';
+    }
+    return '${name.substring(0, maxChars)}...';
+  }
+
   Future<List<Map<String, dynamic>>> getBooks(String translation) async {
     final t = translations[translation] ?? 'NVIPT';
     final base = _normalizeBase(AppConfig.bollsApiUrl);
@@ -47,7 +86,8 @@ class BibleService {
     return data.map((e) {
       final m = Map<String, dynamic>.from(e as Map);
       final int id = (m['bookid'] as num).toInt();
-      final String name = (m['name'] ?? '').toString();
+      final String rawName = (m['name'] ?? '').toString();
+      final String name = _normalizeBookName(rawName);
       final int chapters = (m['chapters'] as num).toInt();
       final String testament = id <= 39 ? 'OT' : 'NT'; // heuristic
       return {
@@ -75,5 +115,42 @@ class BibleService {
       final m = Map<String, dynamic>.from(e as Map);
       return {'verse': m['verse'], 'text': _stripHtml(m['text'] ?? '')};
     }).toList();
+  }
+
+  /// Formata nome para headers (ex.: VersesScreen), encurtando e inserindo quebra de linha.
+  static String formatBookNameForHeader(String raw, {int maxChars = 18}) {
+    final normalized = _normalizeBookNameStatic(raw);
+    if (normalized.length <= maxChars) return normalized;
+    final idx = normalized.lastIndexOf(' ', maxChars);
+    if (idx > 0) {
+      return '${normalized.substring(0, idx)}\n${normalized.substring(idx).trim()}';
+    }
+    return '${normalized.substring(0, maxChars)}...';
+  }
+
+  static String _normalizeBookNameStatic(String raw) {
+    final text = raw.trim();
+    final lower = text.toLowerCase();
+    final apoc = RegExp(r'apocalipse|revelação\s+de\s+deus\s+a\s+joão',
+        caseSensitive: false);
+    if (apoc.hasMatch(lower)) return 'Apocalipse';
+
+    // Normalizações específicas NTLH para cartas longas
+    const ntlhMap = {
+      'primeira carta de paulo aos coríntios': '1 Coríntios',
+      'segunda carta de paulo aos coríntios': '2 Coríntios',
+      'primeira carta de paulo aos tesselonicenses': '1 Tessalonicenses',
+      'segunda carta de paulo aos tesselonicenses': '2 Tessalonicenses',
+      'primeira carta de paulo aos tessalonicenses': '1 Tessalonicenses',
+      'segunda carta de paulo aos tessalonicenses': '2 Tessalonicenses',
+    };
+    for (final entry in ntlhMap.entries) {
+      if (lower == entry.key) return entry.value;
+    }
+
+    var normalized = text.replaceAll(RegExp(r'\s*\(.*?\)'), '');
+    normalized = normalized.split(':').first;
+    normalized = normalized.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return normalized.isEmpty ? text : normalized;
   }
 }
