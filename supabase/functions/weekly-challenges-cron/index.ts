@@ -17,8 +17,9 @@ serve(async (req) => {
 
   try {
     // Verificar autorização (apenas cron jobs ou admin)
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader || !authHeader.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '')) {
+    const expectedSecret = Deno.env.get('FUNCTION_SECRET') || ''
+    const authHeader = req.headers.get('authorization') || ''
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -83,6 +83,7 @@ class DevotionalService {
           'devotional_id': devotionalId,
           'user_profile_id': user.id,
           'read_at': readAt,
+          'read_date': todayUtc,
         });
         
         // Adicionar em reading_history para o calendário

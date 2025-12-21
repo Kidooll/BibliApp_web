@@ -1,0 +1,651 @@
+{
+  "title": "Pentateuco em 90 Dias",
+  "description": "Explore os cinco primeiros livros da Bíblia em 90 dias e aprofunde-se nos fundamentos da criação, da lei e da aliança de Deus com seu povo.",
+  "duration_days": 90,
+  "chapters": [
+    {
+      "dia": 1,
+      "book_id": 1,
+      "chapter_start": 1,
+      "chapter_end": 2,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 2,
+      "book_id": 1,
+      "chapter_start": 3,
+      "chapter_end": 4,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 3,
+      "book_id": 1,
+      "chapter_start": 5,
+      "chapter_end": 6,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 4,
+      "book_id": 1,
+      "chapter_start": 7,
+      "chapter_end": 8,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 5,
+      "book_id": 1,
+      "chapter_start": 9,
+      "chapter_end": 10,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 6,
+      "book_id": 1,
+      "chapter_start": 11,
+      "chapter_end": 12,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 7,
+      "book_id": 1,
+      "chapter_start": 13,
+      "chapter_end": 14,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 8,
+      "book_id": 1,
+      "chapter_start": 15,
+      "chapter_end": 16,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 9,
+      "book_id": 1,
+      "chapter_start": 17,
+      "chapter_end": 18,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 10,
+      "book_id": 1,
+      "chapter_start": 19,
+      "chapter_end": 20,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 11,
+      "book_id": 1,
+      "chapter_start": 21,
+      "chapter_end": 22,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 12,
+      "book_id": 1,
+      "chapter_start": 23,
+      "chapter_end": 24,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 13,
+      "book_id": 1,
+      "chapter_start": 25,
+      "chapter_end": 26,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 14,
+      "book_id": 1,
+      "chapter_start": 27,
+      "chapter_end": 28,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 15,
+      "book_id": 1,
+      "chapter_start": 29,
+      "chapter_end": 30,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 16,
+      "book_id": 1,
+      "chapter_start": 31,
+      "chapter_end": 32,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 17,
+      "book_id": 1,
+      "chapter_start": 33,
+      "chapter_end": 34,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 18,
+      "book_id": 1,
+      "chapter_start": 35,
+      "chapter_end": 36,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 19,
+      "book_id": 1,
+      "chapter_start": 37,
+      "chapter_end": 38,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 20,
+      "book_id": 1,
+      "chapter_start": 39,
+      "chapter_end": 40,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 21,
+      "book_id": 1,
+      "chapter_start": 41,
+      "chapter_end": 42,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 22,
+      "book_id": 1,
+      "chapter_start": 43,
+      "chapter_end": 44,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 23,
+      "book_id": 1,
+      "chapter_start": 45,
+      "chapter_end": 46,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 24,
+      "book_id": 1,
+      "chapter_start": 47,
+      "chapter_end": 48,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 25,
+      "book_id": 1,
+      "chapter_start": 49,
+      "chapter_end": 50,
+      "book_name": "Gênesis"
+    },
+    {
+      "dia": 26,
+      "book_id": 2,
+      "chapter_start": 1,
+      "chapter_end": 2,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 27,
+      "book_id": 2,
+      "chapter_start": 3,
+      "chapter_end": 4,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 28,
+      "book_id": 2,
+      "chapter_start": 5,
+      "chapter_end": 6,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 29,
+      "book_id": 2,
+      "chapter_start": 7,
+      "chapter_end": 8,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 30,
+      "book_id": 2,
+      "chapter_start": 9,
+      "chapter_end": 10,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 31,
+      "book_id": 2,
+      "chapter_start": 11,
+      "chapter_end": 12,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 32,
+      "book_id": 2,
+      "chapter_start": 13,
+      "chapter_end": 14,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 33,
+      "book_id": 2,
+      "chapter_start": 15,
+      "chapter_end": 16,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 34,
+      "book_id": 2,
+      "chapter_start": 17,
+      "chapter_end": 18,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 35,
+      "book_id": 2,
+      "chapter_start": 19,
+      "chapter_end": 20,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 36,
+      "book_id": 2,
+      "chapter_start": 21,
+      "chapter_end": 22,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 37,
+      "book_id": 2,
+      "chapter_start": 23,
+      "chapter_end": 24,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 38,
+      "book_id": 2,
+      "chapter_start": 25,
+      "chapter_end": 26,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 39,
+      "book_id": 2,
+      "chapter_start": 27,
+      "chapter_end": 28,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 40,
+      "book_id": 2,
+      "chapter_start": 29,
+      "chapter_end": 30,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 41,
+      "book_id": 2,
+      "chapter_start": 31,
+      "chapter_end": 32,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 42,
+      "book_id": 2,
+      "chapter_start": 33,
+      "chapter_end": 34,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 43,
+      "book_id": 2,
+      "chapter_start": 35,
+      "chapter_end": 36,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 44,
+      "book_id": 2,
+      "chapter_start": 37,
+      "chapter_end": 38,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 45,
+      "book_id": 2,
+      "chapter_start": 39,
+      "chapter_end": 40,
+      "book_name": "Êxodo"
+    },
+    {
+      "dia": 46,
+      "book_id": 3,
+      "chapter_start": 1,
+      "chapter_end": 2,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 47,
+      "book_id": 3,
+      "chapter_start": 3,
+      "chapter_end": 4,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 48,
+      "book_id": 3,
+      "chapter_start": 5,
+      "chapter_end": 6,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 49,
+      "book_id": 3,
+      "chapter_start": 7,
+      "chapter_end": 8,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 50,
+      "book_id": 3,
+      "chapter_start": 9,
+      "chapter_end": 10,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 51,
+      "book_id": 3,
+      "chapter_start": 11,
+      "chapter_end": 12,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 52,
+      "book_id": 3,
+      "chapter_start": 13,
+      "chapter_end": 14,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 53,
+      "book_id": 3,
+      "chapter_start": 15,
+      "chapter_end": 16,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 54,
+      "book_id": 3,
+      "chapter_start": 17,
+      "chapter_end": 18,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 55,
+      "book_id": 3,
+      "chapter_start": 19,
+      "chapter_end": 20,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 56,
+      "book_id": 3,
+      "chapter_start": 21,
+      "chapter_end": 22,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 57,
+      "book_id": 3,
+      "chapter_start": 23,
+      "chapter_end": 24,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 58,
+      "book_id": 3,
+      "chapter_start": 25,
+      "chapter_end": 26,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 59,
+      "book_id": 3,
+      "chapter_start": 27,
+      "chapter_end": 27,
+      "book_name": "Levítico"
+    },
+    {
+      "dia": 59,
+      "book_id": 4,
+      "chapter_start": 1,
+      "chapter_end": 1,
+      "book_name": "Números"
+    },
+    {
+      "dia": 60,
+      "book_id": 4,
+      "chapter_start": 2,
+      "chapter_end": 3,
+      "book_name": "Números"
+    },
+    {
+      "dia": 61,
+      "book_id": 4,
+      "chapter_start": 4,
+      "chapter_end": 5,
+      "book_name": "Números"
+    },
+    {
+      "dia": 62,
+      "book_id": 4,
+      "chapter_start": 6,
+      "chapter_end": 7,
+      "book_name": "Números"
+    },
+    {
+      "dia": 63,
+      "book_id": 4,
+      "chapter_start": 8,
+      "chapter_end": 9,
+      "book_name": "Números"
+    },
+    {
+      "dia": 64,
+      "book_id": 4,
+      "chapter_start": 10,
+      "chapter_end": 11,
+      "book_name": "Números"
+    },
+    {
+      "dia": 65,
+      "book_id": 4,
+      "chapter_start": 12,
+      "chapter_end": 13,
+      "book_name": "Números"
+    },
+    {
+      "dia": 66,
+      "book_id": 4,
+      "chapter_start": 14,
+      "chapter_end": 15,
+      "book_name": "Números"
+    },
+    {
+      "dia": 67,
+      "book_id": 4,
+      "chapter_start": 16,
+      "chapter_end": 17,
+      "book_name": "Números"
+    },
+    {
+      "dia": 68,
+      "book_id": 4,
+      "chapter_start": 18,
+      "chapter_end": 19,
+      "book_name": "Números"
+    },
+    {
+      "dia": 69,
+      "book_id": 4,
+      "chapter_start": 20,
+      "chapter_end": 21,
+      "book_name": "Números"
+    },
+    {
+      "dia": 70,
+      "book_id": 4,
+      "chapter_start": 22,
+      "chapter_end": 23,
+      "book_name": "Números"
+    },
+    {
+      "dia": 71,
+      "book_id": 4,
+      "chapter_start": 24,
+      "chapter_end": 25,
+      "book_name": "Números"
+    },
+    {
+      "dia": 72,
+      "book_id": 4,
+      "chapter_start": 26,
+      "chapter_end": 27,
+      "book_name": "Números"
+    },
+    {
+      "dia": 73,
+      "book_id": 4,
+      "chapter_start": 28,
+      "chapter_end": 29,
+      "book_name": "Números"
+    },
+    {
+      "dia": 74,
+      "book_id": 4,
+      "chapter_start": 30,
+      "chapter_end": 31,
+      "book_name": "Números"
+    },
+    {
+      "dia": 75,
+      "book_id": 4,
+      "chapter_start": 32,
+      "chapter_end": 33,
+      "book_name": "Números"
+    },
+    {
+      "dia": 76,
+      "book_id": 4,
+      "chapter_start": 34,
+      "chapter_end": 35,
+      "book_name": "Números"
+    },
+    {
+      "dia": 77,
+      "book_id": 4,
+      "chapter_start": 36,
+      "chapter_end": 36,
+      "book_name": "Números"
+    },
+    {
+      "dia": 77,
+      "book_id": 5,
+      "chapter_start": 1,
+      "chapter_end": 1,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 78,
+      "book_id": 5,
+      "chapter_start": 2,
+      "chapter_end": 3,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 79,
+      "book_id": 5,
+      "chapter_start": 4,
+      "chapter_end": 5,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 80,
+      "book_id": 5,
+      "chapter_start": 6,
+      "chapter_end": 7,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 81,
+      "book_id": 5,
+      "chapter_start": 8,
+      "chapter_end": 9,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 82,
+      "book_id": 5,
+      "chapter_start": 10,
+      "chapter_end": 11,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 83,
+      "book_id": 5,
+      "chapter_start": 12,
+      "chapter_end": 13,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 84,
+      "book_id": 5,
+      "chapter_start": 14,
+      "chapter_end": 15,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 85,
+      "book_id": 5,
+      "chapter_start": 16,
+      "chapter_end": 17,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 86,
+      "book_id": 5,
+      "chapter_start": 18,
+      "chapter_end": 19,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 87,
+      "book_id": 5,
+      "chapter_start": 20,
+      "chapter_end": 21,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 88,
+      "book_id": 5,
+      "chapter_start": 22,
+      "chapter_end": 23,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 89,
+      "book_id": 5,
+      "chapter_start": 24,
+      "chapter_end": 25,
+      "book_name": "Deuteronômio"
+    },
+    {
+      "dia": 90,
+      "book_id": 5,
+      "chapter_start": 26,
+      "chapter_end": 27,
+      "book_name": "Deuteronômio"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+    "title": "Famílias da Bíblia em 30 Dias",
+    "description": "Conheça 30 famílias que marcaram a história da salvação. Suas alegrias, lutas e redenções nos revelam como Deus age no seio familiar.",
+    "duration_days": 30,
+    "chapters": [
+      { "dia": 1, "book_id": 1, "chapter_start": 2, "chapter_end": 4, "book_name": "Gênesis" }, 
+      { "dia": 2, "book_id": 1, "chapter_start": 6, "chapter_end": 9, "book_name": "Gênesis" },   
+      { "dia": 3, "book_id": 1, "chapter_start": 12, "chapter_end": 13, "book_name": "Gênesis" }, 
+      { "dia": 4, "book_id": 1, "chapter_start": 16, "chapter_end": 17, "book_name": "Gênesis" },
+      { "dia": 5, "book_id": 1, "chapter_start": 18, "chapter_end": 19, "book_name": "Gênesis" },  
+      { "dia": 6, "book_id": 1, "chapter_start": 21, "chapter_end": 22, "book_name": "Gênesis" },    
+      { "dia": 7, "book_id": 1, "chapter_start": 24, "chapter_end": 25, "book_name": "Gênesis" },   
+      { "dia": 8, "book_id": 1, "chapter_start": 27, "chapter_end": 28, "book_name": "Gênesis" },    
+      { "dia": 9, "book_id": 1, "chapter_start": 29, "chapter_end": 30, "book_name": "Gênesis" },      
+      { "dia": 10, "book_id": 1, "chapter_start": 37, "chapter_end": 39, "book_name": "Gênesis" }, 
+          
+      { "dia": 11, "book_id": 2, "chapter_start": 1, "chapter_end": 2, "book_name": "Êxodo" },       
+      { "dia": 12, "book_id": 4, "chapter_start": 12, "chapter_end": 14, "book_name": "Números" },   
+      { "dia": 13, "book_id": 7, "chapter_start": 13, "chapter_end": 14, "book_name": "Juízes" },   
+      { "dia": 14, "book_id": 8, "chapter_start": 1, "chapter_end": 4, "book_name": "Rute" },        
+      { "dia": 15, "book_id": 9, "chapter_start": 1, "chapter_end": 2, "book_name": "1 Samuel" },    
+      { "dia": 16, "book_id": 9, "chapter_start": 17, "chapter_end": 18, "book_name": "1 Samuel" },    
+      { "dia": 17, "book_id": 10, "chapter_start": 11, "chapter_end": 12, "book_name": "2 Samuel" },
+      { "dia": 18, "book_id": 11, "chapter_start": 1, "chapter_end": 2, "book_name": "1 Reis" },  
+      { "dia": 19, "book_id": 17, "chapter_start": 1, "chapter_end": 2, "book_name": "Ester" },   
+      { "dia": 20, "book_id": 27, "chapter_start": 1, "chapter_end": 3, "book_name": "Daniel" },    
+  
+      { "dia": 21, "book_id": 40, "chapter_start": 1, "chapter_end": 2, "book_name": "Mateus" }, 
+      { "dia": 22, "book_id": 42, "chapter_start": 1, "chapter_end": 2, "book_name": "Lucas" },     
+      { "dia": 23, "book_id": 42, "chapter_start": 10, "chapter_end": 10, "book_name": "Lucas" },  
+      { "dia": 24, "book_id": 43, "chapter_start": 11, "chapter_end": 11, "book_name": "João" },
+      { "dia": 25, "book_id": 42, "chapter_start": 8, "chapter_end": 8, "book_name": "Lucas" },     
+      { "dia": 26, "book_id": 44, "chapter_start": 10, "chapter_end": 10, "book_name": "Atos" },  
+      { "dia": 27, "book_id": 44, "chapter_start": 16, "chapter_end": 16, "book_name": "Atos" },   
+      { "dia": 28, "book_id": 45, "chapter_start": 16, "chapter_end": 16, "book_name": "Romanos" },   
+      { "dia": 29, "book_id": 55, "chapter_start": 1, "chapter_end": 1, "book_name": "2 Timóteo" },
+      { "dia": 30, "book_id": 46, "chapter_start": 12, "chapter_end": 13, "book_name": "1 Coríntios" }  
+    ]
+  }
+  

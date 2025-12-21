@@ -1,0 +1,231 @@
+{
+  "title": "Profetas Menores em 30 Dias",
+  "description": "Explore as mensagens impactantes dos doze profetas menores em 30 dias, mergulhando em temas de justiça, arrependimento e esperança.",
+  "duration_days": 30,
+  "chapters": [
+    {
+      "dia": 1,
+      "book_id": 28,
+      "chapter_start": 1,
+      "chapter_end": 3,
+      "book_name": "Oseias"
+    },
+    {
+      "dia": 2,
+      "book_id": 28,
+      "chapter_start": 4,
+      "chapter_end": 6,
+      "book_name": "Oseias"
+    },
+    {
+      "dia": 3,
+      "book_id": 28,
+      "chapter_start": 7,
+      "chapter_end": 9,
+      "book_name": "Oseias"
+    },
+    {
+      "dia": 4,
+      "book_id": 28,
+      "chapter_start": 10,
+      "chapter_end": 12,
+      "book_name": "Oseias"
+    },
+    {
+      "dia": 5,
+      "book_id": 28,
+      "chapter_start": 13,
+      "chapter_end": 14,
+      "book_name": "Oseias"
+    },
+    {
+      "dia": 5,
+      "book_id": 29,
+      "chapter_start": 1,
+      "chapter_end": 1,
+      "book_name": "Joel"
+    },
+    {
+      "dia": 6,
+      "book_id": 29,
+      "chapter_start": 2,
+      "chapter_end": 3,
+      "book_name": "Joel"
+    },
+    {
+      "dia": 6,
+      "book_id": 30,
+      "chapter_start": 1,
+      "chapter_end": 1,
+      "book_name": "Amós"
+    },
+    {
+      "dia": 7,
+      "book_id": 30,
+      "chapter_start": 2,
+      "chapter_end": 4,
+      "book_name": "Amós"
+    },
+    {
+      "dia": 8,
+      "book_id": 30,
+      "chapter_start": 5,
+      "chapter_end": 7,
+      "book_name": "Amós"
+    },
+    {
+      "dia": 9,
+      "book_id": 30,
+      "chapter_start": 8,
+      "chapter_end": 9,
+      "book_name": "Amós"
+    },
+    {
+      "dia": 9,
+      "book_id": 31,
+      "chapter_start": 1,
+      "chapter_end": 1,
+      "book_name": "Obadias"
+    },
+    {
+      "dia": 10,
+      "book_id": 32,
+      "chapter_start": 1,
+      "chapter_end": 3,
+      "book_name": "Jonas"
+    },
+    {
+      "dia": 11,
+      "book_id": 32,
+      "chapter_start": 4,
+      "chapter_end": 4,
+      "book_name": "Jonas"
+    },
+    {
+      "dia": 11,
+      "book_id": 33,
+      "chapter_start": 1,
+      "chapter_end": 2,
+      "book_name": "Miquéias"
+    },
+    {
+      "dia": 12,
+      "book_id": 33,
+      "chapter_start": 3,
+      "chapter_end": 5,
+      "book_name": "Miquéias"
+    },
+    {
+      "dia": 13,
+      "book_id": 33,
+      "chapter_start": 6,
+      "chapter_end": 7,
+      "book_name": "Miquéias"
+    },
+    {
+      "dia": 13,
+      "book_id": 34,
+      "chapter_start": 1,
+      "chapter_end": 1,
+      "book_name": "Naum"
+    },
+    {
+      "dia": 14,
+      "book_id": 34,
+      "chapter_start": 2,
+      "chapter_end": 3,
+      "book_name": "Naum"
+    },
+    {
+      "dia": 14,
+      "book_id": 35,
+      "chapter_start": 1,
+      "chapter_end": 1,
+      "book_name": "Habacuque"
+    },
+    {
+      "dia": 15,
+      "book_id": 35,
+      "chapter_start": 2,
+      "chapter_end": 3,
+      "book_name": "Habacuque"
+    },
+    {
+      "dia": 15,
+      "book_id": 36,
+      "chapter_start": 1,
+      "chapter_end": 1,
+      "book_name": "Sofonias"
+    },
+    {
+      "dia": 16,
+      "book_id": 36,
+      "chapter_start": 2,
+      "chapter_end": 3,
+      "book_name": "Sofonias"
+    },
+    {
+      "dia": 16,
+      "book_id": 37,
+      "chapter_start": 1,
+      "chapter_end": 1,
+      "book_name": "Ageu"
+    },
+    {
+      "dia": 17,
+      "book_id": 37,
+      "chapter_start": 2,
+      "chapter_end": 2,
+      "book_name": "Ageu"
+    },
+    {
+      "dia": 17,
+      "book_id": 38,
+      "chapter_start": 1,
+      "chapter_end": 2,
+      "book_name": "Zacarias"
+    },
+    {
+      "dia": 18,
+      "book_id": 38,
+      "chapter_start": 3,
+      "chapter_end": 5,
+      "book_name": "Zacarias"
+    },
+    {
+      "dia": 19,
+      "book_id": 38,
+      "chapter_start": 6,
+      "chapter_end": 8,
+      "book_name": "Zacarias"
+    },
+    {
+      "dia": 20,
+      "book_id": 38,
+      "chapter_start": 9,
+      "chapter_end": 11,
+      "book_name": "Zacarias"
+    },
+    {
+      "dia": 21,
+      "book_id": 38,
+      "chapter_start": 12,
+      "chapter_end": 14,
+      "book_name": "Zacarias"
+    },
+    {
+      "dia": 22,
+      "book_id": 39,
+      "chapter_start": 1,
+      "chapter_end": 3,
+      "book_name": "Malaquias"
+    },
+    {
+      "dia": 23,
+      "book_id": 39,
+      "chapter_start": 4,
+      "chapter_end": 4,
+      "book_name": "Malaquias"
+    }
+  ]
+}

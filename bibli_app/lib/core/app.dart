@@ -19,6 +19,7 @@ class BibliApp extends StatelessWidget {
 
     return MaterialApp(
       title: 'BibliApp',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,

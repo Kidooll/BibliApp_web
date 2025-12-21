@@ -40,6 +40,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Devotional? _selectedDevotional;
   Map<String, String?> _selectedQuote = {};
   bool _isLoadingDate = false;
+  List<Map<String, dynamic>> _pendingMissions = [];
+  List<Map<String, dynamic>> _activeReadingPlans = [];
 
   @override
   void initState() {
@@ -109,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       await GamificationService.initialize();
-      await GamificationService.forceSync();
+      await GamificationService.syncIfStale();
       await GamificationService.repairStreakFromHistoryIfNeeded();
 
       // Garantir que o perfil do usuário existe
@@ -124,6 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _homeService.getTodaysQuote(),
         GamificationService.getTotalXp(),
         GamificationService.getUserStats(),
+        _loadPendingMissions(),
+        _loadActiveReadingPlans(),
       ]);
 
       if (mounted) {
@@ -135,6 +139,8 @@ class _HomeScreenState extends State<HomeScreen> {
           _todaysQuote = futures[4] as Map<String, String?>;
           _totalXp = futures[5] as int;
           _userStats = futures[6] as UserStats?;
+          _pendingMissions = futures[7] as List<Map<String, dynamic>>;
+          _activeReadingPlans = futures[8] as List<Map<String, dynamic>>;
           _isLoading = false;
         });
       }
@@ -165,10 +171,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 16.0),
-          child: Column(
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        color: AppColors.primary,
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 16.0),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header com saudação
@@ -208,6 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    ),    
     );
   }
 
@@ -474,19 +484,43 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              const Row(
-                children: [
-                  SizedBox(width: 28),
-                  Icon(Icons.circle_outlined, color: Colors.white, size: 14),
-                  SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Você não iniciou nenhuma missão ainda.',
-                      style: TextStyle(color: Colors.white70),
+              if (_pendingMissions.isEmpty)
+                const Row(
+                  children: [
+                    SizedBox(width: 28),
+                    Icon(Icons.circle_outlined, color: Colors.white, size: 14),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Você não iniciou nenhuma missão ainda.',
+                        style: TextStyle(color: Colors.white70),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                )
+              else
+                ..._pendingMissions.map((mission) {
+                  final missionData = mission['daily_missions'] as Map<String, dynamic>?;
+                  final title = missionData?['title'] as String? ?? 'Missão';
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 28),
+                        const Icon(Icons.circle_outlined, color: Colors.white, size: 14),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(color: Colors.white70),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
               Divider(height: 24, color: Colors.white.withOpacity(0.2)),
               // Planos de leitura ativos
               const Row(
@@ -766,14 +800,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'O Senhor é bom para com aqueles cuja esperança está nele, para com aqueles que o buscam;',
-            style: TextStyle(color: Colors.white, fontSize: 14),
+          Text(
+            displayDevotional?.verse1 ?? 'O Senhor é bom para com aqueles cuja esperança está nele, para com aqueles que o buscam;',
+            style: const TextStyle(color: Colors.white, fontSize: 14),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Lamentações 3:25',
-            style: TextStyle(color: Colors.white70, fontSize: 12),
+          Text(
+            displayDevotional?.verse2 ?? 'Lamentações 3:25',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],
       ),
@@ -939,6 +973,38 @@ class _HomeScreenState extends State<HomeScreen> {
     final goal = _userProfile?.weeklyGoal ?? 7;
     final streak = _userStats?.currentStreakDays ?? 0;
     return streak.clamp(0, goal);
+  }
+
+  Future<List<Map<String, dynamic>>> _loadPendingMissions() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return [];
+
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      final res = await Supabase.instance.client
+          .from('user_missions')
+          .select('id, status, daily_missions(title)')
+          .eq('user_id', user.id)
+          .eq('mission_date', today)
+          .eq('status', 'pending')
+          .limit(3);
+
+      return List<Map<String, dynamic>>.from(res);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadActiveReadingPlans() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return [];
+
+      // Por enquanto retorna vazio até implementar tabela de planos
+      return [];
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<void> _onDateSelected(DateTime date) async {

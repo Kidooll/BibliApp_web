@@ -18,11 +18,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
-    const HomeScreen(),
-    const SleepScreen(),
-    const BibleScreen(),
-    const MissionsScreen(),
-    const ProfileScreen(),
+    const HomeScreen(key: ValueKey('home')),
+    const SleepScreen(key: ValueKey('sleep')),
+    const BibleScreen(key: ValueKey('bible')),
+    const MissionsScreen(key: ValueKey('missions')),
+    const ProfileScreen(key: ValueKey('profile')),
   ];
 
   @override
@@ -43,7 +43,24 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       value: overlayStyle,
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: IndexedStack(index: _currentIndex, children: _screens),
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeInOut,
+          switchOutCurve: Curves.easeInOut,
+          transitionBuilder: (child, animation) {
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.05),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            );
+          },
+          child: _screens[_currentIndex],
+        ),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
             boxShadow: [

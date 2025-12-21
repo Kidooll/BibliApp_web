@@ -1,0 +1,40 @@
+{
+    "title": "Homens da Bíblia em 30 Dias",
+    "description": "30 homens que marcaram a história da fé. Conheça seus acertos, falhas e como Deus os usou para cumprir seus propósitos. Um plano transformador para homens de todas as gerações.",
+    "duration_days": 30,
+    "chapters": [
+      { "dia": 1, "book_id": 1, "chapter_start": 6, "chapter_end": 9, "book_name": "Gênesis" },   
+      { "dia": 2, "book_id": 1, "chapter_start": 12, "chapter_end": 13, "book_name": "Gênesis" },  
+      { "dia": 3, "book_id": 1, "chapter_start": 22, "chapter_end": 22, "book_name": "Gênesis" },  
+      { "dia": 4, "book_id": 1, "chapter_start": 28, "chapter_end": 32, "book_name": "Gênesis" },   
+      { "dia": 5, "book_id": 1, "chapter_start": 37, "chapter_end": 41, "book_name": "Gênesis" }, 
+      { "dia": 6, "book_id": 2, "chapter_start": 3, "chapter_end": 4, "book_name": "Êxodo" },    
+      { "dia": 7, "book_id": 2, "chapter_start": 14, "chapter_end": 15, "book_name": "Êxodo" },  
+      { "dia": 8, "book_id": 6, "chapter_start": 1, "chapter_end": 2, "book_name": "Josué" },     
+      { "dia": 9, "book_id": 7, "chapter_start": 6, "chapter_end": 7, "book_name": "Juízes" },     
+      { "dia": 10, "book_id": 7, "chapter_start": 13, "chapter_end": 16, "book_name": "Juízes" },  
+  
+      { "dia": 11, "book_id": 8, "chapter_start": 2, "chapter_end": 4, "book_name": "Rute" },      
+      { "dia": 12, "book_id": 9, "chapter_start": 16, "chapter_end": 17, "book_name": "1 Samuel" }, 
+      { "dia": 13, "book_id": 9, "chapter_start": 17, "chapter_end": 18, "book_name": "1 Samuel" },  
+      { "dia": 14, "book_id": 10, "chapter_start": 11, "chapter_end": 12, "book_name": "2 Samuel" },  
+      { "dia": 15, "book_id": 11, "chapter_start": 2, "chapter_end": 3, "book_name": "1 Reis" },    
+      { "dia": 16, "book_id": 11, "chapter_start": 18, "chapter_end": 19, "book_name": "1 Reis" },
+      { "dia": 17, "book_id": 12, "chapter_start": 2, "chapter_end": 2, "book_name": "2 Reis" },  
+      { "dia": 18, "book_id": 17, "chapter_start": 3, "chapter_end": 6, "book_name": "Ester" }, 
+      { "dia": 19, "book_id": 16, "chapter_start": 1, "chapter_end": 2, "book_name": "Neemias" },  
+      { "dia": 20, "book_id": 27, "chapter_start": 1, "chapter_end": 2, "book_name": "Daniel" },  
+  
+      { "dia": 21, "book_id": 27, "chapter_start": 3, "chapter_end": 3, "book_name": "Daniel" }, 
+      { "dia": 22, "book_id": 38, "chapter_start": 1, "chapter_end": 1, "book_name": "Malaquias" },
+      { "dia": 23, "book_id": 42, "chapter_start": 3, "chapter_end": 3, "book_name": "Lucas" }, 
+      { "dia": 24, "book_id": 40, "chapter_start": 3, "chapter_end": 4, "book_name": "Mateus" },  
+      { "dia": 25, "book_id": 43, "chapter_start": 10, "chapter_end": 10, "book_name": "João" }, 
+      { "dia": 26, "book_id": 43, "chapter_start": 13, "chapter_end": 14, "book_name": "João" },  
+      { "dia": 27, "book_id": 44, "chapter_start": 7, "chapter_end": 9, "book_name": "Atos" },
+      { "dia": 28, "book_id": 44, "chapter_start": 22, "chapter_end": 23, "book_name": "Atos" }, 
+      { "dia": 29, "book_id": 45, "chapter_start": 7, "chapter_end": 8, "book_name": "Romanos" }, 
+      { "dia": 30, "book_id": 55, "chapter_start": 4, "chapter_end": 4, "book_name": "2 Timóteo" }  
+    ]
+  }
+  

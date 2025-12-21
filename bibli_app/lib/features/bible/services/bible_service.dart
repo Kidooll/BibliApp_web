@@ -1,9 +1,19 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:bibli_app/core/constants/app_constants.dart';
+import 'package:bibli_app/core/config.dart';
 
 class BibleService {
-  static const String _base = 'https://bolls.life';
+  String _normalizeBase(String base) {
+    var normalized = base.trim();
+    if (normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    if (normalized.endsWith('/api')) {
+      normalized = normalized.substring(0, normalized.length - 4);
+    }
+    return normalized;
+  }
 
   static const Map<String, String> translations = {
     'NVIPT': 'NVIPT',
@@ -27,7 +37,8 @@ class BibleService {
 
   Future<List<Map<String, dynamic>>> getBooks(String translation) async {
     final t = translations[translation] ?? 'NVIPT';
-    final uri = Uri.parse('$_base/get-books/$t/');
+    final base = _normalizeBase(AppConfig.bollsApiUrl);
+    final uri = Uri.parse('$base/get-books/$t/');
     final res = await http.get(uri);
     if (res.statusCode != HttpStatusCodes.ok) return [];
     final List data = json.decode(res.body) as List;
@@ -55,7 +66,8 @@ class BibleService {
     int chapter,
   ) async {
     final t = translations[translation] ?? 'NVIPT';
-    final uri = Uri.parse('$_base/get-text/$t/$bookId/$chapter/');
+    final base = _normalizeBase(AppConfig.bollsApiUrl);
+    final uri = Uri.parse('$base/get-text/$t/$bookId/$chapter/');
     final res = await http.get(uri);
     if (res.statusCode != HttpStatusCodes.ok) return [];
     final List data = json.decode(res.body) as List;

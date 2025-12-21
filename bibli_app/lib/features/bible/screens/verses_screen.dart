@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bibli_app/features/reading_plans/services/reading_plans_service.dart';
 
 import '../services/bible_service.dart';
 
@@ -11,6 +13,9 @@ class VersesScreen extends StatefulWidget {
   final String bookName;
   final int initialChapter;
   final int chapterCount;
+  final int? readingPlanId;
+  final int? readingPlanBookId;
+  final String? readingPlanBookName;
 
   const VersesScreen({
     super.key,
@@ -20,6 +25,9 @@ class VersesScreen extends StatefulWidget {
     required this.bookName,
     required this.initialChapter,
     required this.chapterCount,
+    this.readingPlanId,
+    this.readingPlanBookId,
+    this.readingPlanBookName,
   });
 
   @override
@@ -28,12 +36,20 @@ class VersesScreen extends StatefulWidget {
 
 class _VersesScreenState extends State<VersesScreen> {
   final ScrollController _scrollController = ScrollController();
+  final ReadingPlansService _readingPlansService =
+      ReadingPlansService(Supabase.instance.client);
+  final Set<int> _markedChapters = {};
 
   bool _loading = true;
   bool _autoAdvancing = false;
   double _fontScale = 1.0;
   int _chapter = 1;
   List<Map<String, dynamic>> _verses = [];
+
+  String get _displayBookName {
+    final normalized = _normalizeBookName(widget.bookName);
+    return _wrapLongName(normalized, maxChars: 18);
+  }
 
   @override
   void initState() {
@@ -71,6 +87,7 @@ class _VersesScreenState extends State<VersesScreen> {
 
   Future<void> _maybeAdvanceChapter() async {
     if (_autoAdvancing || _loading) return;
+    await _markChapterAsRead();
     if (_chapter >= widget.chapterCount) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -93,6 +110,28 @@ class _VersesScreenState extends State<VersesScreen> {
     }
   }
 
+  Future<void> _markChapterAsRead() async {
+    final planId = widget.readingPlanId;
+    final planBookId = widget.readingPlanBookId;
+    final planBookName = widget.readingPlanBookName;
+    if (planId == null ||
+        (planBookId == null &&
+            (planBookName == null || planBookName.trim().isEmpty))) {
+      return;
+    }
+    if (_markedChapters.contains(_chapter)) return;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    await _readingPlansService.markChapterAsRead(
+      userId: user.id,
+      planId: planId,
+      bookId: planBookId,
+      bookName: planBookName,
+      chapterNumber: _chapter,
+    );
+    _markedChapters.add(_chapter);
+  }
+
   void _decreaseFont() {
     setState(() {
       _fontScale = (_fontScale - 0.1).clamp(0.9, 1.6);
@@ -103,6 +142,35 @@ class _VersesScreenState extends State<VersesScreen> {
     setState(() {
       _fontScale = (_fontScale + 0.1).clamp(0.9, 1.6);
     });
+  }
+
+  String _normalizeBookName(String raw) {
+    final text = raw.trim();
+    final lower = text.toLowerCase();
+
+    // Normaliza Apocalipse e variações
+    final apoc = RegExp(r'apocalipse|revelação\s+de\s+deus\s+a\s+joão', caseSensitive: false);
+    if (apoc.hasMatch(lower)) return 'Apocalipse';
+
+    // Remove parênteses e subtítulos após dois-pontos
+    var normalized = text.replaceAll(RegExp(r'\s*\(.*?\)'), '');
+    normalized = normalized.split(':').first;
+
+    // Colapsa espaços extras
+    normalized = normalized.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return normalized.isEmpty ? text : normalized;
+  }
+
+  String _wrapLongName(String name, {int maxChars = 18}) {
+    if (name.length <= maxChars) return name;
+    final idx = name.lastIndexOf(' ', maxChars);
+    if (idx > 0) {
+      final first = name.substring(0, idx).trim();
+      final rest = name.substring(idx).trim();
+      return '$first\n$rest';
+    }
+    // Sem espaços úteis, usa ellipsis
+    return '${name.substring(0, maxChars)}...';
   }
 
   Future<void> _showVerseActions({
@@ -197,43 +265,65 @@ class _VersesScreenState extends State<VersesScreen> {
                       ),
                     ),
                   ),
-                  const Spacer(),
-                  Row(
-                    children: [
-                      InkWell(
-                        borderRadius: BorderRadius.circular(10),
-                        onTap: _decreaseFont,
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Text(
-                            'T',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF2D2D2D),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        '$_displayBookName $_chapter',
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2D2D2D),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        softWrap: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 88,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: _decreaseFont,
+                          child: const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Text(
+                              'T',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2D2D2D),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      InkWell(
-                        borderRadius: BorderRadius.circular(10),
-                        onTap: _increaseFont,
-                        child: const Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Text(
-                            'T',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF2D2D2D),
+                        const SizedBox(width: 4),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: _increaseFont,
+                          child: const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Text(
+                              'T',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2D2D2D),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

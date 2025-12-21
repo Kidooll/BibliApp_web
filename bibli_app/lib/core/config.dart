@@ -12,10 +12,10 @@ class AppConfig {
       );
     }
     
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    if (!url.startsWith('https://')) {
       throw StateError(
         'SUPABASE_URL inválida: $url\n'
-        'Deve começar com https:// ou http://',
+        'Deve começar com https://',
       );
     }
     
@@ -43,7 +43,13 @@ class AppConfig {
   static const String appVersion = '1.0.0';
 
   // API Configuration
-  static const String bollsApiUrl = 'https://bolls.life/api/';
+  static String get bollsApiUrl {
+    return dotenv.env['BOLLS_API_URL'] ?? 'https://bolls.life';
+  }
+
+  static String get sentryDsn {
+    return dotenv.env['SENTRY_DSN'] ?? '';
+  }
 
   // Contact Information
   static const String privacyEmail = 'privacidade@bibliapp.com';

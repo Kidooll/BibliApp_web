@@ -85,11 +85,13 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
         }
       }
 
+      if (!mounted) return;
       setState(() {
         _devotional = devotional;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });

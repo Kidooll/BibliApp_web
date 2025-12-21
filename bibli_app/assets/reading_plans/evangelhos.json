@@ -1,0 +1,38 @@
+{
+    "title": "Evangelhos em 30 Dias",
+    "description": "Uma leitura equilibrada e transformadora pelos quatro evangelhos em 30 dias. Conheça profundamente a vida e os ensinamentos de Jesus.",
+    "duration_days": 30,
+    "chapters": [
+      {"dia": 1, "book_id": 40, "chapter_start": 1, "chapter_end": 3, "book_name": "Mateus"},
+      {"dia": 2, "book_id": 40, "chapter_start": 4, "chapter_end": 6, "book_name": "Mateus"},
+      {"dia": 3, "book_id": 40, "chapter_start": 7, "chapter_end": 9, "book_name": "Mateus"},
+      {"dia": 4, "book_id": 40, "chapter_start": 10, "chapter_end": 12, "book_name": "Mateus"},
+      {"dia": 5, "book_id": 40, "chapter_start": 13, "chapter_end": 15, "book_name": "Mateus"},
+      {"dia": 6, "book_id": 40, "chapter_start": 16, "chapter_end": 18, "book_name": "Mateus"},
+      {"dia": 7, "book_id": 40, "chapter_start": 19, "chapter_end": 21, "book_name": "Mateus"},
+      {"dia": 8, "book_id": 40, "chapter_start": 22, "chapter_end": 24, "book_name": "Mateus"},
+      {"dia": 9, "book_id": 40, "chapter_start": 25, "chapter_end": 28, "book_name": "Mateus"},
+      {"dia": 10, "book_id": 41, "chapter_start": 1, "chapter_end": 3, "book_name": "Marcos"},
+      {"dia": 11, "book_id": 41, "chapter_start": 4, "chapter_end": 6, "book_name": "Marcos"},
+      {"dia": 12, "book_id": 41, "chapter_start": 7, "chapter_end": 9, "book_name": "Marcos"},
+      {"dia": 13, "book_id": 41, "chapter_start": 10, "chapter_end": 12, "book_name": "Marcos"},
+      {"dia": 14, "book_id": 41, "chapter_start": 13, "chapter_end": 16, "book_name": "Marcos"},
+      {"dia": 15, "book_id": 42, "chapter_start": 1, "chapter_end": 3, "book_name": "Lucas"},
+      {"dia": 16, "book_id": 42, "chapter_start": 4, "chapter_end": 6, "book_name": "Lucas"},
+      {"dia": 17, "book_id": 42, "chapter_start": 7, "chapter_end": 9, "book_name": "Lucas"},
+      {"dia": 18, "book_id": 42, "chapter_start": 10, "chapter_end": 12, "book_name": "Lucas"},
+      {"dia": 19, "book_id": 42, "chapter_start": 13, "chapter_end": 15, "book_name": "Lucas"},
+      {"dia": 20, "book_id": 42, "chapter_start": 16, "chapter_end": 18, "book_name": "Lucas"},
+      {"dia": 21, "book_id": 42, "chapter_start": 19, "chapter_end": 21, "book_name": "Lucas"},
+      {"dia": 22, "book_id": 42, "chapter_start": 22, "chapter_end": 24, "book_name": "Lucas"},
+      {"dia": 23, "book_id": 43, "chapter_start": 1, "chapter_end": 3, "book_name": "João"},
+      {"dia": 24, "book_id": 43, "chapter_start": 4, "chapter_end": 6, "book_name": "João"},
+      {"dia": 25, "book_id": 43, "chapter_start": 7, "chapter_end": 9, "book_name": "João"},
+      {"dia": 26, "book_id": 43, "chapter_start": 10, "chapter_end": 12, "book_name": "João"},
+      {"dia": 27, "book_id": 43, "chapter_start": 13, "chapter_end": 15, "book_name": "João"},
+      {"dia": 28, "book_id": 43, "chapter_start": 16, "chapter_end": 18, "book_name": "João"},
+      {"dia": 29, "book_id": 43, "chapter_start": 19, "chapter_end": 20, "book_name": "João"},
+      {"dia": 30, "book_id": 43, "chapter_start": 21, "chapter_end": 21, "book_name": "João"}
+    ]
+  }
+  

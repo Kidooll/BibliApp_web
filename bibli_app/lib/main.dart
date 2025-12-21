@@ -34,22 +34,25 @@ class _AppLifecycleObserver extends WidgetsBindingObserver {
 }
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
+
   await SentryFlutter.init(
     (options) {
-      options.dsn = 'https://your-sentry-dsn@sentry.io/project-id';
+      final dsn = AppConfig.sentryDsn;
+      if (dsn.isNotEmpty) {
+        options.dsn = dsn;
+      }
       options.environment = kDebugMode ? 'development' : 'production';
       options.tracesSampleRate = kDebugMode ? 1.0 : 0.1;
     },
     appRunner: () => runZonedGuarded(
       () async {
-        WidgetsFlutterBinding.ensureInitialized();
-
         // Configurar orientação
         await SystemChrome.setPreferredOrientations([
           DeviceOrientation.portraitUp,
         ]);
 
-        await dotenv.load(fileName: ".env");
         AppConfig.ensureSupabaseConfig();
 
         // Configurar error handling

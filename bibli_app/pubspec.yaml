@@ -72,11 +72,18 @@ flutter:
     - assets/images/signup_and_signin/image.png
     - assets/images/google_logo.png
     - assets/data/
+    - assets/reading_plans/
     - assets/images/welcome_sleep_page/
     - assets/images/sleep_page/
     - assets/images/sleep_music_page/
     - assets/images/play_option_page/
     - assets/images/music/
+    - assets/images/reading_plans/card_fundo.png
+    - assets/images/reading_plans/icon_01.png
+    - assets/images/reading_plans/icon_02.png
+    - assets/images/reading_plans/icon_03.png
+    - assets/images/reading_plans/icon_04.png
+    - assets/images/reading_plans/icon_05.png
 
 flutter_native_splash:
   color: "#005954"

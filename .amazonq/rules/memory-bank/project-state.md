@@ -353,6 +353,43 @@ SELECT recalculate_user_levels();
 ## Status: PRONTO PARA PRODUÇÃO (100%)
 **Próximo**: Deploy do workflow n8n na AWS
 
+## ✅ Sessão 2024-12-19 - Melhorias Finais
+
+### Pull-to-Refresh Implementado (100%)
+- ✅ **Home Screen**: RefreshIndicator recarrega todos os dados
+- ✅ **Missions Screen**: Atualiza missões, desafios e XP
+- ✅ **Profile Screen**: Sincroniza estatísticas com forceSync()
+
+### Versículo do Dia Dinâmico (100%)
+- ✅ **Home**: Usa `displayDevotional?.verse1` e `verse2` do banco
+- ✅ Fallback para placeholder se devocional não disponível
+
+### Missões em Aberto Dinâmicas (100%)
+- ✅ **Card de Progresso**: Busca até 3 missões pendentes do banco
+- ✅ Query: `status='pending'` do dia atual
+- ✅ UI adaptativa: Lista ou mensagem "nenhuma missão"
+
+### Planos de Leitura na Home (100%)
+- ✅ **Seção substituída**: "Recomendações" → "Planos de Leitura"
+- ✅ **3 cards**: Salmos (150 cap), Provérbios (31 cap), NT (260 cap)
+- ✅ **Botão "Ver todos"**: Navega para ReadingPlansScreen
+- ✅ **Tela placeholder**: "Em Breve" criada
+
+### Citações Corrigidas (100%)
+- ✅ **Toque na tela**: Troca entre 8 imagens (GestureDetector no overlay)
+- ✅ **Indicador "1/8"**: Movido para fora do RepaintBoundary
+- ✅ **Sem sobreposição**: Logo e indicador em posições separadas
+
+### Otimização APK (100%)
+- ✅ **Banner DEBUG removido**: `debugShowCheckedModeBanner: false`
+- ✅ **Guias criados**: OTIMIZAR_APK.md, CONFIGURAR_ASSINATURA.md
+- ✅ **Split per ABI**: Reduz de 110MB para ~35-40MB
+
+### Correções de Bugs (100%)
+- ✅ **Achievement.fromJson**: Type casting correto (id.toString())
+- ✅ **Ícones de desafios**: Todos os 5 tipos mapeados (study, favorite, note)
+- ✅ **Profile stats**: forceSync() garante dados atualizados
+
 ## 🔮 Roadmap Futuro (Planejado)
 
 ### Features em Planejamento

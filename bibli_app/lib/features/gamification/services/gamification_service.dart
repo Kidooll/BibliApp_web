@@ -80,6 +80,11 @@ class GamificationService {
     }
   }
 
+  // Sincroniza apenas se o cache estiver vencido (economiza chamadas na Home)
+  static Future<void> syncIfStale() async {
+    await _syncIfNeeded();
+  }
+
   // Sincronizar com Supabase
   static Future<void> _syncWithSupabase() async {
     try {

@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/home/models/user_profile.dart';
 import 'package:bibli_app/features/home/models/devotional.dart';
 import 'package:bibli_app/features/home/models/reading_streak.dart';
+import 'package:bibli_app/core/services/log_service.dart';
 
 class HomeService {
   final SupabaseClient supabase;
@@ -33,8 +34,13 @@ class HomeService {
           'weekly_goal': 7,
         });
       }
-    } catch (e) {
-      print('Erro ao verificar/criar perfil do usuário: $e');
+    } catch (e, stack) {
+      LogService.error(
+        'Erro ao verificar/criar perfil do usuário',
+        e,
+        stack,
+        'HomeService',
+      );
     }
   }
 
@@ -47,8 +53,13 @@ class HomeService {
           .single();
 
       return UserProfile.fromJson(response);
-    } catch (e) {
-      print('Erro ao buscar perfil do usuário: $e');
+    } catch (e, stack) {
+      LogService.error(
+        'Erro ao buscar perfil do usuário',
+        e,
+        stack,
+        'HomeService',
+      );
       return null;
     }
   }
@@ -66,8 +77,13 @@ class HomeService {
         return Devotional.fromJson(response);
       }
       return null;
-    } catch (e) {
-      print('Erro ao buscar devocional do dia: $e');
+    } catch (e, stack) {
+      LogService.error(
+        'Erro ao buscar devocional do dia',
+        e,
+        stack,
+        'HomeService',
+      );
       return null;
     }
   }
@@ -88,8 +104,13 @@ class HomeService {
         'citation': 'A esperança é o sonho do homem acordado.',
         'author': 'Aristóteles',
       };
-    } catch (e) {
-      print('Erro ao buscar citação do dia: $e');
+    } catch (e, stack) {
+      LogService.error(
+        'Erro ao buscar citação do dia',
+        e,
+        stack,
+        'HomeService',
+      );
       return {
         'citation': 'A esperança é o sonho do homem acordado.',
         'author': 'Aristóteles',
@@ -111,8 +132,13 @@ class HomeService {
         return ReadingStreak.fromJson(response);
       }
       return null;
-    } catch (e) {
-      print('Erro ao buscar streak de leitura: $e');
+    } catch (e, stack) {
+      LogService.error(
+        'Erro ao buscar streak de leitura',
+        e,
+        stack,
+        'HomeService',
+      );
       return null;
     }
   }
@@ -126,8 +152,13 @@ class HomeService {
           .limit(limit);
 
       return response.map((json) => Devotional.fromJson(json)).toList();
-    } catch (e) {
-      print('Erro ao buscar devocionais recentes: $e');
+    } catch (e, stack) {
+      LogService.error(
+        'Erro ao buscar devocionais recentes',
+        e,
+        stack,
+        'HomeService',
+      );
       return [];
     }
   }
@@ -174,8 +205,13 @@ class HomeService {
         return Devotional.fromJson(response);
       }
       return null;
-    } catch (e) {
-      print('Erro ao buscar devocional da data $date: $e');
+    } catch (e, stack) {
+      LogService.error(
+        'Erro ao buscar devocional da data $date',
+        e,
+        stack,
+        'HomeService',
+      );
       return null;
     }
   }
@@ -196,8 +232,13 @@ class HomeService {
         'citation': 'Nenhuma citação disponível para esta data.',
         'author': null,
       };
-    } catch (e) {
-      print('Erro ao buscar citação da data $date: $e');
+    } catch (e, stack) {
+      LogService.error(
+        'Erro ao buscar citação da data $date',
+        e,
+        stack,
+        'HomeService',
+      );
       return {
         'citation': 'Erro ao carregar citação.',
         'author': null,
@@ -217,8 +258,13 @@ class HomeService {
         final dateStr = item['read_at'] as String;
         return DateTime.parse(dateStr);
       }).toSet();
-    } catch (e) {
-      print('Erro ao buscar datas de leitura: $e');
+    } catch (e, stack) {
+      LogService.error(
+        'Erro ao buscar datas de leitura',
+        e,
+        stack,
+        'HomeService',
+      );
       return {};
     }
   }

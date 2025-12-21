@@ -1,0 +1,21 @@
+id,title,description,duration_days,created_at,updated_at
+1,Leitura Bíblica em 1 Ano,Um plano para ler a Bíblia inteira em 365 dias,365,2025-06-13 00:21:42.948231+00,2025-06-13 00:21:42.948231+00
+3,Evangelhos em 30 Dias,Estude os quatro evangelhos em um mês,30,2025-06-13 00:21:43.071673+00,2025-06-13 00:21:43.071673+00
+5,Salmos em 75 Dias,Medite nos Salmos por 75 dias,75,2025-06-13 00:21:43.238897+00,2025-06-13 00:21:43.238897+00
+7,Provérbios em 31 Dias,"Descubra a sabedoria prática de Deus para o dia a dia com uma leitura diária do livro de Provérbios, em um plano que dura exatamente 31 dias.",31,2025-06-13 00:21:43.384466+00,2025-06-13 00:21:43.384466+00
+9,Atos dos Apóstolos em 28 Dias,Estude o livro de Atos em 28 dias,28,2025-06-13 00:21:43.514285+00,2025-06-13 00:21:43.514285+00
+10,Cartas de Paulo em 60 Dias,Estude as cartas do apóstolo Paulo em 60 dias,60,2025-06-13 00:21:43.614529+00,2025-06-13 00:21:43.614529+00
+11,Pentateuco em 90 Dias,Estude os cinco primeiros livros da Bíblia em 90 dias,90,2025-06-13 00:21:43.74434+00,2025-06-13 00:21:43.74434+00
+12,Profetas Maiores em 45 Dias,Estude os livros dos profetas maiores em 45 dias,45,2025-06-13 00:21:43.857259+00,2025-06-13 00:21:43.857259+00
+13,Profetas Menores em 30 Dias,Estude os livros dos profetas menores em 30 dias,30,2025-06-13 00:21:43.961467+00,2025-06-13 00:21:43.961467+00
+15,História de Israel em 40 Dias,Estude a história do povo de Israel em 40 dias,40,2025-06-13 00:21:44.053077+00,2025-06-13 00:21:44.053077+00
+17,Sabedoria em 45 Dias,Estude os livros de sabedoria em 45 dias,45,2025-06-13 00:21:44.155676+00,2025-06-13 00:21:44.155676+00
+19,Apocalipse em 10 Dias,"Uma leitura profunda do livro de Apocalipse em 10 dias, explorando as visões, símbolos e mensagens finais das Escrituras sobre o fim dos tempos e a esperança da eternidade.",22,2025-06-13 00:21:44.270591+00,2025-06-13 00:21:44.270591+00
+21,Vida de Jesus em 40 Dias,Estude a vida de Jesus através dos evangelhos em 40 dias,40,2025-06-13 00:21:44.349918+00,2025-06-13 00:21:44.349918+00
+24,Oração em 30 Dias,Estude as orações da Bíblia em 30 dias,30,2025-06-13 00:21:44.488046+00,2025-06-13 00:21:44.488046+00
+26,Milagres de Jesus em 21 Dias,Estude os milagres realizados por Jesus em 21 dias,21,2025-06-13 00:21:44.573352+00,2025-06-13 00:21:44.573352+00
+27,Parábolas em 30 Dias,Estude as parábolas de Jesus em 30 dias,30,2025-06-13 00:21:44.674213+00,2025-06-13 00:21:44.674213+00
+29,Mulheres da Bíblia em 30 Dias,Estude a vida de mulheres importantes da Bíblia em 30 dias,30,2025-06-13 00:21:44.776882+00,2025-06-13 00:21:44.776882+00
+32,Homens da Bíblia em 30 Dias,Estude a vida de homens importantes da Bíblia em 30 dias,30,2025-06-13 00:21:44.855223+00,2025-06-13 00:21:44.855223+00
+34,Famílias da Bíblia em 30 Dias,Estude as famílias importantes da Bíblia em 30 dias,30,2025-06-13 00:21:44.932191+00,2025-06-13 00:21:44.932191+00
+36,Liderança Bíblica em 30 Dias,Estude os princípios de liderança na Bíblia em 30 dias,30,2025-06-13 00:21:45.011799+00,2025-06-13 00:21:45.011799+00

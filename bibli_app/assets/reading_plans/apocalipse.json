@@ -1,0 +1,18 @@
+{
+    "title": "Apocalipse em 10 Dias",
+    "description": "Uma leitura profunda do livro de Apocalipse em 10 dias, explorando as visões, símbolos e mensagens finais das Escrituras sobre o fim dos tempos e a esperança da eternidade.",
+    "duration_days": 10,
+    "chapters": [
+      { "dia": 1, "book_id": 66, "chapter_start": 1, "chapter_end": 2, "book_name": "Apocalipse" },
+      { "dia": 2, "book_id": 66, "chapter_start": 3, "chapter_end": 4, "book_name": "Apocalipse" },
+      { "dia": 3, "book_id": 66, "chapter_start": 5, "chapter_end": 6, "book_name": "Apocalipse" },
+      { "dia": 4, "book_id": 66, "chapter_start": 7, "chapter_end": 8, "book_name": "Apocalipse" },
+      { "dia": 5, "book_id": 66, "chapter_start": 9, "chapter_end": 10, "book_name": "Apocalipse" },
+      { "dia": 6, "book_id": 66, "chapter_start": 11, "chapter_end": 12, "book_name": "Apocalipse" },
+      { "dia": 7, "book_id": 66, "chapter_start": 13, "chapter_end": 14, "book_name": "Apocalipse" },
+      { "dia": 8, "book_id": 66, "chapter_start": 15, "chapter_end": 16, "book_name": "Apocalipse" },
+      { "dia": 9, "book_id": 66, "chapter_start": 17, "chapter_end": 18, "book_name": "Apocalipse" },
+      { "dia": 10, "book_id": 66, "chapter_start": 19, "chapter_end": 22, "book_name": "Apocalipse" }
+    ]
+  }
+  

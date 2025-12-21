@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bibli_app/features/bible/services/bible_service.dart';
+import 'package:bibli_app/features/bible/services/bible_prefs.dart';
 import 'package:bibli_app/features/bible/screens/chapters_screen.dart';
 import 'package:bibli_app/features/missions/services/missions_service.dart';
 import 'package:bibli_app/features/missions/services/weekly_challenges_service.dart';
@@ -31,8 +32,15 @@ class _BibleScreenState extends State<BibleScreen> {
     super.initState();
     _missionsService = MissionsService(Supabase.instance.client);
     _weeklyService = WeeklyChallengesService(Supabase.instance.client);
-    _loadBooks();
+    _loadTranslation();
     _registerBibleMission();
+  }
+
+  Future<void> _loadTranslation() async {
+    final saved = await BiblePrefs.getTranslation();
+    if (!mounted) return;
+    setState(() => _translation = saved);
+    await _loadBooks();
   }
 
   Future<void> _registerBibleMission() async {
@@ -175,6 +183,7 @@ class _BibleScreenState extends State<BibleScreen> {
                       onChanged: (v) async {
                         if (v == null) return;
                         setState(() => _translation = v);
+                        await BiblePrefs.setTranslation(v);
                         await _loadBooks();
                       },
                     ),

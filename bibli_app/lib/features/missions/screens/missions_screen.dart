@@ -257,32 +257,36 @@ class _MissionsScreenState extends State<MissionsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              )
-            : Column(
-                children: [
-                  // Header fixo
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        _buildHeaderCard(),
-                        const SizedBox(height: 12),
-                        _buildXpCard(),
-                        const SizedBox(height: 16),
-                        _buildTabBar(),
-                      ],
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        color: AppColors.primary,
+        child: SafeArea(
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                )
+              : Column(
+                  children: [
+                    // Header fixo
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          _buildHeaderCard(),
+                          const SizedBox(height: 12),
+                          _buildXpCard(),
+                          const SizedBox(height: 16),
+                          _buildTabBar(),
+                        ],
+                      ),
                     ),
-                  ),
-                  // Conteúdo das tabs
-                  Expanded(
-                    child: _buildTabContent(),
-                  ),
-                ],
-              ),
+                    // Conteúdo das tabs
+                    Expanded(
+                      child: _buildTabContent(),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }

@@ -143,8 +143,13 @@ class AuthService {
         'user_id': userId,
         'last_activity_date': today,
       }, onConflict: 'user_id');
-    } catch (e) {
-      print('Erro ao registrar último login em user_stats: $e');
+    } catch (e, stack) {
+      LogService.error(
+        'Erro ao registrar último login em user_stats',
+        e,
+        stack,
+        'AuthService',
+      );
     }
 
     // Opcional: manter um carimbo em user_profiles para consultas rápidas
