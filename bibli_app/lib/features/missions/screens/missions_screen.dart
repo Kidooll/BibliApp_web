@@ -691,31 +691,29 @@ class _MissionsScreenState extends State<MissionsScreen>
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: done 
-                ? [AppColors.primary.withOpacity(0.1), AppColors.complementary.withOpacity(0.1)]
-                : [Colors.white, Colors.white],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: done ? Border.all(color: AppColors.primary, width: 2) : null,
+            border: Border.all(
+              color: done
+                  ? AppColors.primary.withOpacity(0.4)
+                  : Colors.grey.shade200,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(14),
             child: Row(
               children: [
                 // Progress Ring
                 SizedBox(
-                  width: 60,
-                  height: 60,
+                  width: 58,
+                  height: 58,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -728,8 +726,8 @@ class _MissionsScreenState extends State<MissionsScreen>
                         ),
                       ),
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
                           color: done ? Colors.green : AppColors.primary,
                           shape: BoxShape.circle,
@@ -737,7 +735,7 @@ class _MissionsScreenState extends State<MissionsScreen>
                         child: Icon(
                           _getChallengeIcon(type),
                           color: Colors.white,
-                          size: 20,
+                          size: 18,
                         ),
                       ),
                     ],
@@ -753,7 +751,7 @@ class _MissionsScreenState extends State<MissionsScreen>
                         title,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 14,
                           color: done ? AppColors.primary : Colors.black87,
                         ),
                       ),
@@ -768,36 +766,22 @@ class _MissionsScreenState extends State<MissionsScreen>
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '$progress/$target',
-                              style: const TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
+                          _chip(
+                            label: '$progress/$target',
+                            color: AppColors.primary,
+                            background: AppColors.primary.withOpacity(0.12),
                           ),
                           const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '+$xp XP',
-                              style: const TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
+                          _chip(
+                            label: '+$xp XP',
+                            color: Colors.green,
+                            background: Colors.green.withOpacity(0.12),
+                          ),
+                          const SizedBox(width: 8),
+                          _chip(
+                            label: _missionTypeLabel(type),
+                            color: const Color(0xFF2F5E5B),
+                            background: const Color(0xFFEAF2FF),
                           ),
                         ],
                       ),

@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/core/services/log_service.dart';
+import 'package:bibli_app/features/missions/services/weekly_challenges_service.dart';
 
 /// Serviço para gerenciar favoritos/destaques/notas (tabela `bookmarks`).
 class BookmarksService {
@@ -55,6 +56,11 @@ class BookmarksService {
         },
         onConflict: 'user_profile_id,bookmark_type,verse_id',
       );
+      try {
+        await WeeklyChallengesService(_supabase).incrementByType('favorite');
+      } catch (e, stack) {
+        LogService.error('Erro ao registrar desafio semanal (favorite)', e, stack, 'BookmarksService');
+      }
       return true;
     } catch (e, stack) {
       LogService.error('Erro ao alternar highlight', e, stack, 'BookmarksService');
@@ -83,6 +89,11 @@ class BookmarksService {
         },
         onConflict: 'user_profile_id,bookmark_type,verse_id',
       );
+      try {
+        await WeeklyChallengesService(_supabase).incrementByType('favorite');
+      } catch (e, stack) {
+        LogService.error('Erro ao registrar desafio semanal (favorite)', e, stack, 'BookmarksService');
+      }
       return true;
     } catch (e, stack) {
       LogService.error('Erro ao definir highlight', e, stack, 'BookmarksService');
@@ -163,6 +174,11 @@ class BookmarksService {
           },
           onConflict: 'user_profile_id,bookmark_type,verse_id',
         );
+      }
+      try {
+        await WeeklyChallengesService(_supabase).incrementByType('note');
+      } catch (e, stack) {
+        LogService.error('Erro ao registrar desafio semanal (note)', e, stack, 'BookmarksService');
       }
       return true;
     } catch (e, stack) {

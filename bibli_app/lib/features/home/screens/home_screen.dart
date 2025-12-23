@@ -1140,128 +1140,142 @@ class _CalendarDialogState extends State<_CalendarDialog> {
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableWidth = (constraints.maxWidth.isFinite
+                  ? constraints.maxWidth
+                  : MediaQuery.of(context).size.width * 0.9) -
+              32; // padding horizontal (16*2)
+          final cellSize = (availableWidth / 7).clamp(32.0, 48.0).toDouble();
+
+          return Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  onPressed: _previousMonth,
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                Text(
-                  '${_getMonthName(_currentMonth.month)} ${_currentMonth.year}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                IconButton(
-                  onPressed: _nextMonth,
-                  icon: const Icon(Icons.chevron_right),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Dias da semana
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
-                  .map((day) => SizedBox(
-                        width: 40,
-                        child: Center(
-                          child: Text(
-                            day,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                            ),
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      onPressed: _previousMonth,
+                      icon: const Icon(Icons.chevron_left),
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          '${_getMonthName(_currentMonth.month)} ${_currentMonth.year}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ))
-                  .toList(),
-            ),
-            const SizedBox(height: 8),
-            // Grid de dias
-            ...List.generate((daysInMonth + firstWeekday) ~/ 7 + 1, (weekIndex) {
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: List.generate(7, (dayIndex) {
-                  final dayNumber = weekIndex * 7 + dayIndex - firstWeekday + 1;
-                  if (dayNumber < 1 || dayNumber > daysInMonth) {
-                    return const SizedBox(width: 40, height: 40);
-                  }
-
-                  final date = DateTime(_currentMonth.year, _currentMonth.month, dayNumber);
-                  final isToday = _isSameDay(date, now);
-                  final isSelected = _isSameDay(date, widget.selectedDate);
-                  final isRead = _isRead(date);
-                  final isFuture = date.isAfter(now);
-
-                  return GestureDetector(
-                    onTap: isFuture ? null : () => widget.onDateSelected(date),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      margin: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFF005954)
-                            : (isRead ? const Color(0xFF338b85).withOpacity(0.3) : null),
-                        border: isToday && !isSelected
-                            ? Border.all(color: const Color(0xFF005954), width: 2)
-                            : null,
-                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Stack(
-                        children: [
-                          Center(
-                            child: Text(
-                              '$dayNumber',
-                              style: TextStyle(
-                                color: isSelected
-                                    ? Colors.white
-                                    : (isFuture ? Colors.grey.shade300 : Colors.black),
-                                fontWeight: isRead ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                          if (isRead && !isSelected)
-                            Positioned(
-                              bottom: 4,
-                              right: 4,
-                              child: Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF005954),
-                                  shape: BoxShape.circle,
+                    ),
+                    IconButton(
+                      onPressed: _nextMonth,
+                      icon: const Icon(Icons.chevron_right),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Dias da semana
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+                      .map((day) => SizedBox(
+                            width: cellSize,
+                            child: Center(
+                              child: Text(
+                                day,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
                                 ),
                               ),
                             ),
-                        ],
-                      ),
-                    ),
+                          ))
+                      .toList(),
+                ),
+                const SizedBox(height: 6),
+                // Grid de dias
+                ...List.generate((daysInMonth + firstWeekday) ~/ 7 + 1, (weekIndex) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(7, (dayIndex) {
+                      final dayNumber = weekIndex * 7 + dayIndex - firstWeekday + 1;
+                      if (dayNumber < 1 || dayNumber > daysInMonth) {
+                        return SizedBox(width: cellSize, height: cellSize);
+                      }
+
+                      final date = DateTime(_currentMonth.year, _currentMonth.month, dayNumber);
+                      final isToday = _isSameDay(date, now);
+                      final isSelected = _isSameDay(date, widget.selectedDate);
+                      final isRead = _isRead(date);
+                      final isFuture = date.isAfter(now);
+
+                      return GestureDetector(
+                        onTap: isFuture ? null : () => widget.onDateSelected(date),
+                        child: Container(
+                          width: cellSize,
+                          height: cellSize,
+                          margin: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFF005954)
+                                : (isRead ? const Color(0xFF338b85).withOpacity(0.3) : null),
+                            border: isToday && !isSelected
+                                ? Border.all(color: const Color(0xFF005954), width: 2)
+                                : null,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: Text(
+                                  '$dayNumber',
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : (isFuture ? Colors.grey.shade300 : Colors.black),
+                                    fontWeight: isRead ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                              if (isRead && !isSelected)
+                                Positioned(
+                                  bottom: 4,
+                                  right: 4,
+                                  child: Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF005954),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
                   );
                 }),
-              );
-            }),
-            const SizedBox(height: 16),
-            // Legenda
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildLegend(Colors.grey.shade300, 'Hoje'),
-                _buildLegend(const Color(0xFF338b85).withOpacity(0.3), 'Lido'),
-                _buildLegend(const Color(0xFF005954), 'Selecionado'),
+                const SizedBox(height: 12),
+                // Legenda
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildLegend(Colors.grey.shade300, 'Hoje'),
+                    _buildLegend(const Color(0xFF338b85).withOpacity(0.3), 'Lido'),
+                    _buildLegend(const Color(0xFF005954), 'Selecionado'),
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/reading_plans/models/reading_plan.dart';
 import 'package:bibli_app/core/services/log_service.dart';
+import 'package:bibli_app/features/missions/services/weekly_challenges_service.dart';
 
 class ReadingPlansService {
   final SupabaseClient _client;
@@ -367,6 +368,13 @@ class ReadingPlansService {
       if (payload.isEmpty) return;
       await _client.from('user_reading_plan_item_progress').insert(payload);
       await _touchProgress(progressId);
+
+      // Weekly challenge: treat plan chapters as "study" events
+      try {
+        await WeeklyChallengesService(_client).incrementByType('study', step: 1);
+      } catch (e, stack) {
+        LogService.error('Erro ao registrar desafio semanal (study)', e, stack, 'ReadingPlansService');
+      }
     } catch (e, stack) {
       LogService.error(
         'Erro ao marcar capítulo como lido',

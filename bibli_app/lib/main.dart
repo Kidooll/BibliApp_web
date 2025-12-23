@@ -7,6 +7,7 @@ import 'package:bibli_app/core/config.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:bibli_app/core/services/cache_service.dart';
 import 'package:bibli_app/core/services/monitoring_service.dart';
+import 'package:bibli_app/core/services/notification_service.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:flutter/foundation.dart';
 
@@ -76,9 +77,8 @@ void main() async {
         // Inicializar serviços
         await MonitoringService.initialize();
         CacheService.autoCleanup();
-        
-        // Log de inicialização
         await MonitoringService.logAppLaunch();
+        await NotificationService.initAndScheduleDailyReading();
         
         // Configurar lifecycle callbacks
         WidgetsBinding.instance.addObserver(_AppLifecycleObserver());
