@@ -7,6 +7,7 @@ import 'package:bibli_app/features/auth/screens/forgot_password_screen.dart';
 import 'package:bibli_app/features/onboarding/screens/welcome_screen.dart';
 import 'package:bibli_app/features/onboarding/screens/reminders_screen.dart';
 import 'package:bibli_app/features/navigation/screens/main_navigation_screen.dart';
+import 'package:bibli_app/features/profile/screens/profile_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -74,6 +75,7 @@ class BibliApp extends StatelessWidget {
         '/welcome': (context) => const WelcomeScreen(),
         '/reminders': (context) => const RemindersScreen(),
         '/home': (context) => const MainNavigationScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }

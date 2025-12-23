@@ -4,7 +4,7 @@ import 'package:bibli_app/features/home/screens/home_screen.dart';
 import 'package:bibli_app/features/sleep/screens/sleep_screen.dart';
 import 'package:bibli_app/features/bible/screens/bible_screen.dart';
 import 'package:bibli_app/features/missions/screens/missions_screen.dart';
-import 'package:bibli_app/features/profile/screens/profile_screen.dart';
+import 'package:bibli_app/features/bookmarks/screens/bookmarks_screen.dart';
 import 'package:bibli_app/core/constants/app_constants.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -22,7 +22,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const SleepScreen(key: ValueKey('sleep')),
     const BibleScreen(key: ValueKey('bible')),
     const MissionsScreen(key: ValueKey('missions')),
-    const ProfileScreen(key: ValueKey('profile')),
+    const BookmarksScreen(key: ValueKey('bookmarks')),
   ];
 
   @override
@@ -105,8 +105,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 label: 'Missões',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.person),
-                label: 'Perfil',
+                icon: Icon(Icons.bookmark),
+                label: 'Favoritos',
               ),
             ],
           ),

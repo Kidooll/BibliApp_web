@@ -229,13 +229,42 @@ class _HomeScreenState extends State<HomeScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '$greeting, $userName',
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2D2D2D),
-            ),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/profile'),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: const Color(0xFFE0E0E0),
+                  backgroundImage: (_userProfile?.avatarUrl?.trim().isNotEmpty ?? false)
+                      ? NetworkImage(_userProfile!.avatarUrl!)
+                      : null,
+                  child: (_userProfile?.avatarUrl?.trim().isEmpty ?? true)
+                      ? Text(
+                          userName.isNotEmpty
+                              ? userName.characters.first.toUpperCase()
+                              : 'U',
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            color: Color(0xFF2D2D2D),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '$greeting, $userName',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2D2D2D),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(

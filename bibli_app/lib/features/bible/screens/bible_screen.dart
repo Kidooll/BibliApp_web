@@ -123,22 +123,25 @@ class _BibleScreenState extends State<BibleScreen> {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: const Color(0xFFE0E0E0),
-                    backgroundImage: avatarUrl.trim().isNotEmpty
-                        ? NetworkImage(avatarUrl)
-                        : null,
-                    child: avatarUrl.trim().isEmpty
-                        ? Text(
-                            initials,
-                            style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              color: Color(0xFF2D2D2D),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          )
-                        : null,
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/profile'),
+                    child: CircleAvatar(
+                      radius: 20,
+                      backgroundColor: const Color(0xFFE0E0E0),
+                      backgroundImage: avatarUrl.trim().isNotEmpty
+                          ? NetworkImage(avatarUrl)
+                          : null,
+                      child: avatarUrl.trim().isEmpty
+                          ? Text(
+                              initials,
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Color(0xFF2D2D2D),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            )
+                          : null,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   const Text(
