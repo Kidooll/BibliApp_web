@@ -14,29 +14,30 @@ class AppColors {
 }
 
 class XpValues {
-  static const devotionalRead = 8;
-  static const dailyBonus = 5;
-  static const chapterRead = 5;
-  static const streak3Days = 15;
-  static const streak7Days = 35;
-  static const streak30Days = 150;
-  static const missionCompleted = 10;
-  static const achievementUnlocked = 20;
-  static const shareQuote = 5;
+  // Dificuldade 3x: reduzimos os ganhos aproximando para inteiros
+  static const devotionalRead = 3;       // era 8
+  static const dailyBonus = 2;           // era 5
+  static const chapterRead = 2;          // era 5
+  static const streak3Days = 5;          // era 15
+  static const streak7Days = 12;         // era 35
+  static const streak30Days = 50;        // era 150
+  static const missionCompleted = 3;     // era 10
+  static const achievementUnlocked = 7;  // era 20
+  static const shareQuote = 2;           // era 5
 }
 
 class LevelRequirements {
-  // Níveis conforme PRD
-  static const level1 = 0;     // Novato na Fé (0-100)
-  static const level2 = 101;   // Buscador (101-250)
-  static const level3 = 251;   // Discípulo (251-500)
-  static const level4 = 501;   // Servo Fiel (501-800)
-  static const level5 = 801;   // Estudioso (801-1200)
-  static const level6 = 1201;  // Sábio (1201-1700)
-  static const level7 = 1701;  // Mestre (1701-2300)
-  static const level8 = 2301;  // Líder Espiritual (2301-3000)
-  static const level9 = 3001;  // Mentor (3001-4000)
-  static const level10 = 4001; // Gigante da Fé (4001+)
+  // Níveis conforme PRD (ajustados +50% para aumentar dificuldade)
+  static const level1 = 0;      // Novato na Fé (0-150)
+  static const level2 = 150;    // Buscador (150-375)
+  static const level3 = 375;    // Discípulo (375-750)
+  static const level4 = 750;    // Servo Fiel (750-1200)
+  static const level5 = 1200;   // Estudioso (1200-1800)
+  static const level6 = 1800;   // Sábio (1800-2550)
+  static const level7 = 2550;   // Mestre (2550-3450)
+  static const level8 = 3450;   // Líder Espiritual (3450-4500)
+  static const level9 = 4500;   // Mentor (4500-6000)
+  static const level10 = 6000;  // Gigante da Fé (6000+)
   
   static const requirements = [
     level1, level2, level3, level4, level5,

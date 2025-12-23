@@ -45,7 +45,8 @@ class _BibleScreenState extends State<BibleScreen> {
 
   Future<void> _registerBibleMission() async {
     try {
-      await _missionsService.completeMissionByCode('open_bible');
+      // Apenas progride a missão de abrir a Bíblia; usuário resgata manualmente
+      await _missionsService.incrementMissionByCode('open_bible');
       await _weeklyService.incrementByType('reading', step: 1);
     } catch (_) {
       // Silenciar para não quebrar a UI de leitura
