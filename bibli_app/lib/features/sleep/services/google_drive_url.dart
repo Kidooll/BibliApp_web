@@ -1,23 +1,28 @@
 class GoogleDriveUrl {
-  static String normalize(String input) {
+  /// Retorna lista de URLs candidatas para streaming de um arquivo do Drive.
+  /// Formato inspirado no player de referência: `https://drive.google.com/uc?export=download&id=<ID>`
+  static List<String> candidates(String input) {
     final raw = input.trim();
-    if (raw.isEmpty) return raw;
+    if (raw.isEmpty) return [];
 
     Uri? uri;
     try {
       uri = Uri.parse(raw);
     } catch (_) {
-      return raw;
+      return [raw];
     }
-    if (uri.host.isEmpty) return raw;
+    if (uri.host.isEmpty) return [raw];
 
     final host = uri.host.toLowerCase();
-    if (!host.contains('drive.google.com')) return raw;
+    if (!host.contains('drive.google.com') && !host.contains('docs.google.com')) {
+      return [raw];
+    }
 
     // Typical cases:
     // - https://drive.google.com/file/d/<id>/view?...
     // - https://drive.google.com/open?id=<id>
     // - https://drive.google.com/uc?export=download&id=<id>
+    // - https://docs.google.com/uc?export=download&id=<id>
     String? id = uri.queryParameters['id'];
 
     if (id == null || id.isEmpty) {
@@ -28,13 +33,13 @@ class GoogleDriveUrl {
       }
     }
 
-    if (id == null || id.isEmpty) return raw;
+    if (id == null || id.isEmpty) return [raw];
 
-    return Uri(
-      scheme: 'https',
-      host: 'drive.google.com',
-      path: '/uc',
-      queryParameters: {'export': 'download', 'id': id},
-    ).toString();
+    final direct = 'https://drive.google.com/uc?export=download&id=$id';
+
+    return [
+      direct,
+      raw,
+    ];
   }
 }

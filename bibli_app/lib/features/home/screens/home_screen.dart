@@ -844,6 +844,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildEditorRecommendations() {
+    const planCards = [
+      (
+        title: 'Salmos em 30 Dias',
+        description: '150 capítulos',
+        icon: Icons.auto_stories,
+        color: Color(0xFF5E9EA0),
+      ),
+      (
+        title: 'Provérbios',
+        description: '31 capítulos',
+        icon: Icons.lightbulb_outline,
+        color: Color(0xFF7B9E89),
+      ),
+      (
+        title: 'Novo Testamento',
+        description: '260 capítulos',
+        icon: Icons.menu_book,
+        color: Color(0xFF8B7E74),
+      ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -877,28 +898,19 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 16),
         SizedBox(
           height: 200,
-          child: ListView(
+          child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            children: [
-              _buildReadingPlanCard(
-                title: 'Salmos em 30 Dias',
-                description: '150 capítulos',
-                icon: Icons.auto_stories,
-                color: const Color(0xFF5E9EA0),
-              ),
-              _buildReadingPlanCard(
-                title: 'Provérbios',
-                description: '31 capítulos',
-                icon: Icons.lightbulb_outline,
-                color: const Color(0xFF7B9E89),
-              ),
-              _buildReadingPlanCard(
-                title: 'Novo Testamento',
-                description: '260 capítulos',
-                icon: Icons.menu_book,
-                color: const Color(0xFF8B7E74),
-              ),
-            ],
+            itemCount: planCards.length,
+            padding: EdgeInsets.zero,
+            itemBuilder: (context, index) {
+              final card = planCards[index];
+              return _buildReadingPlanCard(
+                title: card.title,
+                description: card.description,
+                icon: card.icon,
+                color: card.color,
+              );
+            },
           ),
         ),
       ],

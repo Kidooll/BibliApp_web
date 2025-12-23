@@ -32,8 +32,8 @@ class SleepPlaybackService {
     _fallbackTimer?.cancel();
 
     final url = track.audioUrl?.trim() ?? '';
-    final normalizedUrl = GoogleDriveUrl.normalize(url);
-    _usingFallback = normalizedUrl.isEmpty;
+    final candidates = GoogleDriveUrl.candidates(url);
+    _usingFallback = candidates.isEmpty;
     _sourceLoaded = false;
 
     _state.value = SleepPlaybackState(
@@ -54,7 +54,7 @@ class SleepPlaybackService {
       return;
     }
 
-    unawaited(_loadAndPlay(url: normalizedUrl, autoplay: autoplay));
+    unawaited(_loadAndPlay(urls: candidates, autoplay: autoplay));
   }
 
   void toggle() {
@@ -152,12 +152,12 @@ class SleepPlaybackService {
   }
 
   Future<void> _loadAndPlay({
-    required String url,
+    required List<String> urls,
     required bool autoplay,
   }) async {
     try {
       await _ensureInitialized();
-      await _player.setUrl(url);
+      await _setSourceFromList(urls);
       _sourceLoaded = true;
       if (autoplay) {
         await _player.play();
@@ -174,10 +174,10 @@ class SleepPlaybackService {
     await _ensureInitialized();
     final track = _currentTrack;
     final url = track?.audioUrl?.trim() ?? '';
-    final normalizedUrl = GoogleDriveUrl.normalize(url);
-    if (!_sourceLoaded && normalizedUrl.isNotEmpty) {
+    final candidates = GoogleDriveUrl.candidates(url);
+    if (!_sourceLoaded && candidates.isNotEmpty) {
       try {
-        await _player.setUrl(normalizedUrl);
+        await _setSourceFromList(candidates);
         _sourceLoaded = true;
       } catch (e) {
         debugPrint('SleepPlaybackService: erro ao carregar áudio: $e');
@@ -193,6 +193,24 @@ class SleepPlaybackService {
     } else {
       await _player.play();
     }
+  }
+
+  Future<void> _setSourceFromList(List<String> urls) async {
+    if (urls.isEmpty) {
+      throw Exception('Nenhuma URL para carregar');
+    }
+    Exception? lastError;
+    for (final url in urls) {
+      try {
+        // Usa setUrl simples (mesmo formato do exemplo funcional)
+        await _player.setUrl(url);
+        return;
+      } catch (e) {
+        lastError = e is Exception ? e : Exception(e.toString());
+        debugPrint('SleepPlaybackService: tentativa falhou para $url -> $e');
+      }
+    }
+    throw lastError ?? Exception('Falha ao carregar fontes de áudio');
   }
 
   void _tickFallback() {
