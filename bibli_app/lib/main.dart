@@ -8,9 +8,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:bibli_app/core/services/cache_service.dart';
 import 'package:bibli_app/core/services/monitoring_service.dart';
 import 'package:bibli_app/core/services/notification_service.dart';
-import 'package:flutter/foundation.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 
 
@@ -52,15 +49,6 @@ void main() async {
       anonKey: AppConfig.supabaseAnonKey,
     );
 
-    Future<void> configureSentryScope() async {
-      final packageInfo = await PackageInfo.fromPlatform();
-      await Sentry.configureScope((scope) {
-        scope.setTag('app_version', packageInfo.version);
-        scope.setTag('build_number', packageInfo.buildNumber);
-        scope.setTag('environment', kDebugMode ? 'development' : 'production');
-      });
-    }
-
     void scheduleBackgroundServices() {
       // Inicializar serviços em background
       Future.microtask(() async {
@@ -76,19 +64,7 @@ void main() async {
       });
     }
 
-    final sentryDsn = AppConfig.sentryDsn;
-    if (sentryDsn.isNotEmpty) {
-      await SentryFlutter.init(
-        (options) {
-          options.dsn = sentryDsn;
-          options.environment = kDebugMode ? 'development' : 'production';
-        },
-        appRunner: () => runApp(const BibliApp()),
-      );
-      await configureSentryScope();
-    } else {
-      runApp(const BibliApp());
-    }
+    runApp(const BibliApp());
     scheduleBackgroundServices();
   } catch (e, stack) {
     debugPrint('Erro fatal: $e');

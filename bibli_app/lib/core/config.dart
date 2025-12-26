@@ -47,10 +47,6 @@ class AppConfig {
     return dotenv.env['BOLLS_API_URL'] ?? 'https://bolls.life';
   }
 
-  static String get sentryDsn {
-    return dotenv.env['SENTRY_DSN'] ?? '';
-  }
-
   // Contact Information
   static const String privacyEmail = 'privacidade@bibliapp.com';
 

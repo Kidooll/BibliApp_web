@@ -31,7 +31,6 @@ class _MissionsScreenState extends State<MissionsScreen>
   Level? _currentLevel;
   int _totalXp = 0;
   int _xpToNextLevel = 0;
-  List<Achievement> _achievements = [];
   List<Achievement> _unlockedAchievements = [];
   UserStats? _userStats;
   bool _isLoading = true;
@@ -112,7 +111,6 @@ class _MissionsScreenState extends State<MissionsScreen>
       final totalXp = await GamificationService.getTotalXp();
       final currentLevel = await GamificationService.getCurrentLevelInfo();
       final xpToNextLevel = await GamificationService.getXpToNextLevel();
-      final achievements = await GamificationService.getAllAchievements();
       final unlockedAchievements =
           await GamificationService.getUserAchievements();
       final userStats = await GamificationService.getUserStats();
@@ -126,7 +124,6 @@ class _MissionsScreenState extends State<MissionsScreen>
           _totalXp = totalXp;
           _currentLevel = currentLevel;
           _xpToNextLevel = xpToNextLevel;
-          _achievements = achievements;
           _unlockedAchievements = unlockedAchievements;
           _userStats = userStats;
           _levels = levels;
@@ -311,19 +308,6 @@ class _MissionsScreenState extends State<MissionsScreen>
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
-  }
-
-  int _getMaxXpForLevel(int level) {
-    const levelRequirements = LevelRequirements.requirements;
-    if (level >= 5) return 0;
-    return levelRequirements[level] - levelRequirements[level - 1];
-  }
-
-  int _getCurrentXpInLevel(int level) {
-    const levelRequirements = LevelRequirements.requirements;
-    if (level >= 5) return 0;
-    final levelStartXp = levelRequirements[level - 1];
-    return _totalXp - levelStartXp;
   }
 
   Widget _buildWeeklyChallengesSection() {

@@ -1,4 +1,3 @@
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/core/services/log_service.dart';
 
@@ -76,45 +75,23 @@ class MonitoringService {
   }) async {
     if (!_initialized) return;
 
-    try {
-      // Sentry
-      await Sentry.captureException(
-        exception,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          if (context != null) scope.setTag('context', context);
-          if (extra != null) {
-            extra.forEach((key, value) {
-              scope.setTag(key, value.toString());
-            });
-          }
-        },
-      );
-    } catch (e) {
-      LogService.warning('Erro ao reportar crash', 'MonitoringService');
+    LogService.error(
+      'Erro capturado${context != null ? ' [$context]' : ''}',
+      exception,
+      stackTrace,
+      'MonitoringService',
+    );
+    if (extra != null && extra.isNotEmpty) {
+      LogService.debug('Extra: ${extra.toString()}', 'MonitoringService');
     }
   }
 
   static Future<void> setUserId(String userId) async {
     if (!_initialized) return;
-
-    try {
-      await Sentry.configureScope((scope) => scope.setUser(SentryUser(id: userId)));
-    } catch (e) {
-      LogService.warning('Erro ao definir user ID', 'MonitoringService');
-    }
   }
 
   static Future<void> setUserProperty(String name, String value) async {
     if (!_initialized) return;
-
-    try {
-      await Sentry.configureScope((scope) {
-        scope.setTag(name, value);
-      });
-    } catch (e) {
-      LogService.warning('Erro ao definir propriedade do usuário', 'MonitoringService');
-    }
   }
 
   // Métricas específicas do app
