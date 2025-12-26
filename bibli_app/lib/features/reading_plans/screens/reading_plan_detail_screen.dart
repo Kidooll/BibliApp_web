@@ -26,7 +26,6 @@ class _ReadingPlanDetailScreenState extends State<ReadingPlanDetailScreen> {
   Map<int, List<_PlanChapterItem>> _chaptersByDay = {};
   bool _rewardClaimed = false;
   bool _claimingReward = false;
-  bool _loadingBibleBooks = false;
   Future<void>? _bibleBooksFuture;
   bool _openingChapter = false;
   List<Map<String, dynamic>> _bibleBooks = [];
@@ -158,6 +157,7 @@ class _ReadingPlanDetailScreenState extends State<ReadingPlanDetailScreen> {
       );
       return;
     }
+    if (!mounted) return;
 
     await Navigator.push(
       context,
@@ -217,12 +217,10 @@ class _ReadingPlanDetailScreenState extends State<ReadingPlanDetailScreen> {
       await _bibleBooksFuture;
       return;
     }
-    _loadingBibleBooks = true;
     _bibleBooksFuture = _bibleService.getBooks(translation).then((books) {
       _bibleBooks = books;
       _bibleBooksTranslation = translation;
     }).whenComplete(() {
-      _loadingBibleBooks = false;
       _bibleBooksFuture = null;
     });
     await _bibleBooksFuture;

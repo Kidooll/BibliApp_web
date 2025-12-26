@@ -18,9 +18,10 @@ class _RemindersScreenState extends State<RemindersScreen> {
   final List<String> _days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
   Future<void> _savePreferencesAndContinue() async {
-    final formattedTime = _selectedTime.format(context);
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      final formattedTime = _selectedTime.format(context);
       await prefs.setString('reminder_time', formattedTime);
       await prefs.setInt('reminder_hour', _selectedTime.hour);
       await prefs.setInt('reminder_minute', _selectedTime.minute);

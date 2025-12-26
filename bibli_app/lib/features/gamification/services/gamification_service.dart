@@ -12,7 +12,6 @@ import 'package:bibli_app/core/services/log_service.dart';
 import 'package:bibli_app/core/services/monitoring_service.dart';
 
 class GamificationService {
-  static const String _supabase = 'supabase';
   static const String _cacheKey = 'gamification_cache';
   static const String _lastSyncKey = 'last_sync_timestamp';
   static const String _streakRepairKey = 'streak_repair_last_day';
@@ -545,52 +544,6 @@ class GamificationService {
     }
   }
 
-  // Desbloquear conquista
-  static Future<void> _unlockAchievement(Achievement achievement) async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
-
-      // Já existe no servidor?
-      final existing = await Supabase.instance.client
-          .from('user_achievements')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('achievement_id', achievement.id)
-          .maybeSingle();
-      if (existing != null) return; // já desbloqueada
-
-      // Registrar conquista no Supabase (evita duplicado)
-      await Supabase.instance.client.from('user_achievements').upsert({
-        'user_id': user.id,
-        'achievement_id': achievement.id,
-        'unlocked_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'user_id,achievement_id');
-
-      // Adicionar XP da conquista (apenas na primeira vez)
-      await addXp(
-        actionName: 'achievement_unlocked',
-        xpAmount: achievement.xpReward,
-        description: 'Conquista: ${achievement.title}',
-      );
-
-      // Atualizar cache local
-      final unlockedAchievements = _localCache['achievements'] ?? [];
-      final achievementWithUnlock = achievement.copyWith(
-        unlockedAt: DateTime.now(),
-      );
-      unlockedAchievements.add(achievementWithUnlock.toJson());
-      _localCache['achievements'] = unlockedAchievements;
-
-      await _saveCache();
-
-      _emitEvent('achievement_unlocked');
-      LogService.info('${AppStrings.achievementUnlocked} ${achievement.title}', 'GamificationService');
-    } catch (e, stack) {
-      LogService.error('Erro ao desbloquear conquista', e, stack, 'GamificationService');
-    }
-  }
-
   // Obter XP total do usuário
   static Future<int> getTotalXp() async {
     await _syncIfNeeded();
@@ -733,8 +686,9 @@ class GamificationService {
         final v = row['xp_amount'];
         if (v is int) {
           sum += v;
-        } else if (v is num)
+        } else if (v is num) {
           sum += v.toInt();
+        }
       }
       return sum;
     } catch (e, stack) {

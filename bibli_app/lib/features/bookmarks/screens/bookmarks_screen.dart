@@ -448,6 +448,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
       if (!mounted) return;
       if (ok) {
         await _load();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           CustomSnackBar.success('Nota adicionada', icon: Icons.note_add),
         );

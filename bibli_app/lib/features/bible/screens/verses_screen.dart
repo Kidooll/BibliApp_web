@@ -206,6 +206,7 @@ class _VersesScreenState extends State<VersesScreen> {
   Future<void> _maybeAdvanceChapter() async {
     if (_autoAdvancing || _loading) return;
     await _markChapterAsRead();
+    if (!mounted) return;
     if (_chapter >= widget.chapterCount) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -268,6 +269,7 @@ class _VersesScreenState extends State<VersesScreen> {
   }) async {
     int? verseId = _verseIdsByNumber[verseNumber];
     verseId ??= await _resolveVerseId(verseNumber);
+    if (!mounted) return;
     LogService.debug(
       'Abrindo modal verso=$verseNumber id=$verseId highlight=${verseId != null ? _highlightColors[verseId] : null}',
       'VersesScreen',

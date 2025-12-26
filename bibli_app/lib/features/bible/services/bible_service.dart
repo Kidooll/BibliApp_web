@@ -64,16 +64,6 @@ class BibleService {
     return normalized.isEmpty ? text : normalized;
   }
 
-  // Encurta nomes muito longos para evitar overflow em qualquer tela.
-  String _shortenBookName(String name, {int maxChars = 22}) {
-    if (name.length <= maxChars) return name;
-    final idx = name.lastIndexOf(' ', maxChars);
-    if (idx > 0) {
-      return '${name.substring(0, idx)}...';
-    }
-    return '${name.substring(0, maxChars)}...';
-  }
-
   Future<List<Map<String, dynamic>>> getBooks(String translation) async {
     final t = translations[translation] ?? 'NVIPT';
     final base = _normalizeBase(AppConfig.bollsApiUrl);

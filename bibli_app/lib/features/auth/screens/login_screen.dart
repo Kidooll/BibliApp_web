@@ -275,10 +275,12 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
       } on AuthException catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.message)));
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro inesperado: ${e.toString()}')),
         );

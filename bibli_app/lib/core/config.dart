@@ -58,7 +58,8 @@ class AppConfig {
     // Validação já é feita nos getters
     final supabaseUrlValue = supabaseUrl;
     final supabaseAnonKeyValue = supabaseAnonKey;
-    supabaseUrlValue;
-    supabaseAnonKeyValue;
+    if (supabaseUrlValue.isEmpty || supabaseAnonKeyValue.isEmpty) {
+      throw StateError('Supabase config inválida');
+    }
   }
 }

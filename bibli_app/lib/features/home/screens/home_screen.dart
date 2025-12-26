@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/home/services/home_service.dart';
 import 'package:bibli_app/features/home/models/user_profile.dart';
 import 'package:bibli_app/core/models/devotional.dart';
-import 'package:bibli_app/features/home/models/reading_streak.dart';
 import 'package:bibli_app/features/devotionals/screens/devotional_screen.dart';
 import 'package:bibli_app/features/devotionals/services/devotional_access_service.dart';
 import 'package:bibli_app/features/quotes/screens/quote_screen.dart';
@@ -31,8 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   UserProfile? _userProfile;
   Devotional? _todaysDevotional;
-  ReadingStreak? _readingStreak;
-  List<Devotional> _recentDevotionals = [];
   Map<String, String?> _todaysQuote = {};
   bool _isLoading = true;
   int _totalXp = 0;
@@ -42,7 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, String?> _selectedQuote = {};
   bool _isLoadingDate = false;
   List<Map<String, dynamic>> _pendingMissions = [];
-  List<Map<String, dynamic>> _activeReadingPlans = [];
 
   @override
   void initState() {
@@ -122,26 +118,20 @@ class _HomeScreenState extends State<HomeScreen> {
       final futures = await Future.wait([
         _homeService.getUserProfile(user.id),
         _homeService.getTodaysDevotional(),
-        _homeService.getReadingStreak(user.id),
-        _homeService.getRecentDevotionals(),
         _homeService.getTodaysQuote(),
         GamificationService.getTotalXp(),
         GamificationService.getUserStats(),
         _loadPendingMissions(),
-        _loadActiveReadingPlans(),
       ]);
 
       if (mounted) {
         setState(() {
           _userProfile = futures[0] as UserProfile?;
           _todaysDevotional = futures[1] as Devotional?;
-          _readingStreak = futures[2] as ReadingStreak?;
-          _recentDevotionals = futures[3] as List<Devotional>;
-          _todaysQuote = futures[4] as Map<String, String?>;
-          _totalXp = futures[5] as int;
-          _userStats = futures[6] as UserStats?;
-          _pendingMissions = futures[7] as List<Map<String, dynamic>>;
-          _activeReadingPlans = futures[8] as List<Map<String, dynamic>>;
+          _todaysQuote = futures[2] as Map<String, String?>;
+          _totalXp = futures[3] as int;
+          _userStats = futures[4] as UserStats?;
+          _pendingMissions = futures[5] as List<Map<String, dynamic>>;
           _isLoading = false;
         });
       }
@@ -1095,18 +1085,6 @@ class _HomeScreenState extends State<HomeScreen> {
           .limit(3);
 
       return List<Map<String, dynamic>>.from(res);
-    } catch (e) {
-      return [];
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> _loadActiveReadingPlans() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return [];
-
-      // Por enquanto retorna vazio até implementar tabela de planos
-      return [];
     } catch (e) {
       return [];
     }

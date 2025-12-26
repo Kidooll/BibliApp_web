@@ -103,9 +103,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final authService = AuthService(Supabase.instance.client);
 
     if (_isLoading) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: background,
-        body: const Center(
+        body: Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
@@ -303,7 +303,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showSettingsDialog(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
+    if (!context.mounted) return;
     bool soundEnabled = prefs.getBool('sound_enabled') ?? true;
     bool notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
     
