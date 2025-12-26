@@ -53,14 +53,19 @@ class Achievement {
   }
 
   factory Achievement.fromJson(Map<String, dynamic> json) {
+    final typeName = json['type'] as String? ?? 'special';
+    final type = AchievementType.values.firstWhere(
+      (t) => t.name == typeName,
+      orElse: () => AchievementType.special,
+    );
     return Achievement(
       id: json['id'].toString(),
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       icon: json['icon'] as String? ?? 'emoji_events',
-      xpReward: json['xpReward'] as int? ?? 0,
-      type: AchievementType.values.byName(json['type'] as String? ?? 'special'),
-      targetValue: json['targetValue'] as int? ?? 1,
+      xpReward: (json['xpReward'] as num?)?.toInt() ?? 0,
+      type: type,
+      targetValue: (json['targetValue'] as num?)?.toInt() ?? 1,
       isUnlocked: json['isUnlocked'] as bool? ?? false,
       unlockedAt: json['unlockedAt'] != null 
           ? DateTime.parse(json['unlockedAt'] as String) 
@@ -74,5 +79,7 @@ enum AchievementType {
   totalXp,
   devotionalCount,
   firstTime,
+  highlights,
+  chaptersRead,
   special,
 }

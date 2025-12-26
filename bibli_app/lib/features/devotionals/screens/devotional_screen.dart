@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:bibli_app/features/devotionals/models/devotional.dart';
+import 'package:bibli_app/core/models/devotional.dart';
 import 'package:bibli_app/features/devotionals/services/devotional_service.dart';
+import 'package:bibli_app/features/bookmarks/services/bookmarks_service.dart';
 import 'package:bibli_app/core/constants/app_constants.dart';
 import 'package:bibli_app/core/services/log_service.dart';
 import 'package:bibli_app/core/services/server_time_service.dart';
@@ -18,6 +19,7 @@ class DevotionalScreen extends StatefulWidget {
 
 class _DevotionalScreenState extends State<DevotionalScreen> {
   late DevotionalService _devotionalService;
+  late BookmarksService _bookmarksService;
   Devotional? _devotional;
   bool _isLoading = true;
   bool _isFavorite = false;
@@ -27,10 +29,12 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
   void initState() {
     super.initState();
     _devotionalService = DevotionalService(Supabase.instance.client);
+    _bookmarksService = BookmarksService(Supabase.instance.client);
     _loadDevotional();
   }
 
   Future<void> _loadDevotional() async {
+    final messenger = ScaffoldMessenger.of(context);
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -66,14 +70,13 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
                 // Mostrar animação de XP ganho
                 _showXpGainedAnimation();
               } else {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Não foi possível registrar a leitura.'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
+                if (!mounted) return;
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Não foi possível registrar a leitura.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
               }
             } else {
               LogService.info(
@@ -90,14 +93,26 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
       if (!mounted) return;
       setState(() {
         _devotional = devotional;
+        _isFavorite = false;
         _isLoading = false;
       });
+      if (devotional != null) {
+        await _loadFavoriteState(devotional.id);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _loadFavoriteState(int devotionalId) async {
+    final isFav = await _bookmarksService.isDevotionalFavorited(devotionalId);
+    if (!mounted) return;
+    setState(() {
+      _isFavorite = isFav;
+    });
   }
 
   String _formatDate(DateTime date) {
@@ -110,13 +125,13 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
   void _showXpGainedAnimation() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: const Row(
           children: [
-            const Icon(Icons.star, color: Colors.amber),
-            const SizedBox(width: 8),
+            Icon(Icons.star, color: Colors.amber),
+            SizedBox(width: 8),
             Text(
               '+${XpValues.devotionalRead} XP ganho!',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -165,10 +180,24 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
               _isFavorite ? Icons.favorite : Icons.favorite_border,
               color: _isFavorite ? Colors.red : const Color(0xFF2D2D2D),
             ),
-            onPressed: () {
-              setState(() {
-                _isFavorite = !_isFavorite;
-              });
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final devotionalId = _devotional?.id;
+              if (devotionalId == null) return;
+              final ok =
+                  await _bookmarksService.toggleDevotionalFavorite(devotionalId);
+              if (!mounted) return;
+              if (ok) {
+                setState(() {
+                  _isFavorite = !_isFavorite;
+                });
+              } else {
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Não foi possível atualizar o favorito.'),
+                  ),
+                );
+              }
             },
           ),
           IconButton(

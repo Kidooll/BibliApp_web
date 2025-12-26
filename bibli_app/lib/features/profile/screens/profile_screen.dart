@@ -8,6 +8,7 @@ import 'package:bibli_app/features/gamification/models/level.dart';
 import 'package:bibli_app/features/gamification/models/user_stats.dart';
 import 'package:bibli_app/core/constants/app_constants.dart';
 import 'package:bibli_app/core/services/log_service.dart';
+import 'package:bibli_app/core/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -97,208 +98,212 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const background = Color(0xFFF8F6F2);
     final user = Supabase.instance.client.auth.currentUser;
     final authService = AuthService(Supabase.instance.client);
 
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F5F5),
-        body: Center(
+      return Scaffold(
+        backgroundColor: background,
+        body: const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: background,
+      appBar: AppBar(
+        backgroundColor: background,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text(
+          'Perfil',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: RefreshIndicator(
         onRefresh: _loadUserData,
         color: AppColors.primary,
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
-              // Header
-              const Row(
-                children: [
-                  Icon(Icons.person, color: AppColors.primary, size: 28),
-                  SizedBox(width: 12),
-                  Text(
-                    'Perfil',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D2D2D),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
               // Card do usuário
               if (user != null) ...[
                 _buildUserCard(user),
                 const SizedBox(height: 20),
-                
+
                 // Estatísticas
                 _buildStatsSection(),
                 const SizedBox(height: 20),
               ],
 
               // Opções do perfil
-              Column(
-                children: [
-                  _buildProfileOption(
-                    icon: Icons.emoji_events,
-                    title: 'Conquistas (Achievements)',
-                    subtitle: '$_unlockedAchievements achievements desbloqueadas',
-                    onTap: () => _showAchievementsDialog(context),
-                  ),
-                  _buildProfileOption(
-                    icon: Icons.edit,
-                    title: 'Editar Perfil',
-                    subtitle: 'Alterar nome e informações',
-                    onTap: () => _showEditProfileDialog(context),
-                  ),
-                  _buildProfileOption(
-                    icon: Icons.settings,
-                    title: 'Configurações',
-                    subtitle: 'Preferências do aplicativo',
-                    onTap: () => _showSettingsDialog(context),
-                  ),
-                  _buildProfileOption(
-                    icon: Icons.notifications,
-                    title: 'Notificações',
-                    subtitle: 'Gerenciar lembretes',
-                    onTap: () => _showNotificationsDialog(context),
-                  ),
-                  _buildProfileOption(
-                    icon: Icons.help,
-                    title: 'Ajuda',
-                    subtitle: 'Suporte e FAQ',
-                    onTap: () => _showHelpDialog(context),
-                  ),
-                  _buildProfileOption(
-                    icon: Icons.info,
-                    title: 'Sobre',
-                    subtitle: 'Versão e informações do app',
-                    onTap: () => _showAboutDialog(context),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Botão de logout
-                  _buildLogoutButton(authService),
-                ],
+              _buildProfileOption(
+                icon: Icons.emoji_events,
+                title: 'Conquistas (Achievements)',
+                subtitle: '$_unlockedAchievements achievements desbloqueadas',
+                onTap: () => _showAchievementsDialog(context),
               ),
+              _buildProfileOption(
+                icon: Icons.edit,
+                title: 'Editar Perfil',
+                subtitle: 'Alterar nome e informações',
+                onTap: () => _showEditProfileDialog(context),
+              ),
+              _buildProfileOption(
+                icon: Icons.settings,
+                title: 'Configurações',
+                subtitle: 'Preferências do aplicativo',
+                onTap: () => _showSettingsDialog(context),
+              ),
+              _buildProfileOption(
+                icon: Icons.notifications,
+                title: 'Notificações',
+                subtitle: 'Gerenciar lembretes',
+                onTap: () => _showNotificationsDialog(context),
+              ),
+              _buildProfileOption(
+                icon: Icons.help,
+                title: 'Ajuda',
+                subtitle: 'Suporte e FAQ',
+                onTap: () => _showHelpDialog(context),
+              ),
+              _buildProfileOption(
+                icon: Icons.info,
+                title: 'Sobre',
+                subtitle: 'Versão e informações do app',
+                onTap: () => _showAboutDialog(context),
+              ),
+              const SizedBox(height: 24),
+
+              // Botão de logout
+              _buildLogoutButton(authService),
             ],
           ),
         ),
       ),
-    ),
     );
   }
 
-  void _showEditProfileDialog(BuildContext context) {
+  Future<void> _showEditProfileDialog(BuildContext context) async {
     final nameController = TextEditingController(text: _username ?? '');
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.edit, color: AppColors.primary),
-            SizedBox(width: 8),
-            Text('Editar Perfil'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Nome de usuário',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Outras opções de edição estarão disponíveis em breve.',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+
+    try {
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final newName = nameController.text.trim();
-              if (newName.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('⚠️ Nome não pode ser vazio'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
-                return;
-              }
-              
-              Navigator.pop(context);
-              
-              try {
-                final user = Supabase.instance.client.auth.currentUser;
-                if (user == null) return;
-                
-                await Supabase.instance.client
-                    .from('user_profiles')
-                    .update({'username': newName})
-                    .eq('id', user.id);
-                
-                setState(() {
-                  _username = newName;
-                });
-                
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+          title: const Row(
+            children: [
+              Icon(Icons.edit, color: AppColors.primary),
+              SizedBox(width: 8),
+              Text('Editar Perfil'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nome de usuário',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Outras opções de edição estarão disponíveis em breve.',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(this.context);
+                final newName = nameController.text.trim();
+                if (newName.isEmpty) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('⚠️ Nome não pode ser vazio'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+
+                Navigator.pop(context);
+
+                try {
+                  final user = Supabase.instance.client.auth.currentUser;
+                  if (user == null) return;
+
+                  await Supabase.instance.client
+                      .from('user_profiles')
+                      .update({'username': newName})
+                      .eq('id', user.id);
+
+                  if (!mounted) return;
+                  setState(() {
+                    _username = newName;
+                  });
+
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('✅ Perfil atualizado com sucesso'),
                       backgroundColor: Colors.green,
                     ),
                   );
-                }
-              } catch (e, stack) {
-                LogService.error('Erro ao atualizar perfil', e, stack, 'ProfileScreen');
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                } catch (e, stack) {
+                  LogService.error(
+                    'Erro ao atualizar perfil',
+                    e,
+                    stack,
+                    'ProfileScreen',
+                  );
+                  if (!mounted) return;
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('❌ Erro ao atualizar perfil'),
                       backgroundColor: Colors.red,
                     ),
                   );
                 }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Salvar'),
             ),
-            child: const Text('Salvar'),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    } finally {
+      nameController.dispose();
+    }
   }
 
   void _showSettingsDialog(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     bool soundEnabled = prefs.getBool('sound_enabled') ?? true;
     bool notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
     
@@ -329,6 +334,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   setDialogState(() {
                     notificationsEnabled = value;
                   });
+                  await NotificationService.scheduleFromPreferences();
                 },
               ),
               SwitchListTile(

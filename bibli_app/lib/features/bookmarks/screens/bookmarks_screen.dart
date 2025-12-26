@@ -375,81 +375,90 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   Future<void> _addNoteManually() async {
     final tituloController = TextEditingController();
     final noteController = TextEditingController();
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Nova nota',
-            style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: tituloController,
-                decoration: const InputDecoration(
-                  labelText: 'Título (opcional)',
-                  hintText: 'Ex: Minha reflexão',
-                ),
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              'Nova nota',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: noteController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Texto da nota',
-                  hintText: 'Escreva sua anotação',
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: tituloController,
+                  decoration: const InputDecoration(
+                    labelText: 'Título (opcional)',
+                    hintText: 'Ex: Minha reflexão',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: noteController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Texto da nota',
+                    hintText: 'Escreva sua anotação',
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
+                child: const Text(
+                  'Salvar',
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-              ),
-              child: const Text(
-                'Salvar',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
+          );
+        },
+      );
+
+      if (confirmed != true) return;
+
+      final noteText = noteController.text.trim();
+      final title = tituloController.text.trim();
+      if (noteText.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          CustomSnackBar.error('Escreva o texto da nota.'),
         );
-      },
-    );
+        return;
+      }
 
-    if (confirmed != true) return;
-
-    final noteText = noteController.text.trim();
-    final title = tituloController.text.trim();
-    if (noteText.isEmpty) {
+      final composed = title.isNotEmpty ? '$title\n$noteText' : noteText;
+      final ok = await _service.upsertNote(noteText: composed);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        CustomSnackBar.error('Escreva o texto da nota.'),
-      );
-      return;
-    }
-
-    final composed = title.isNotEmpty ? '$title\n$noteText' : noteText;
-    final ok = await _service.upsertNote(noteText: composed);
-    if (!mounted) return;
-    if (ok) {
-      await _load();
-      ScaffoldMessenger.of(context).showSnackBar(
-        CustomSnackBar.success('Nota adicionada', icon: Icons.note_add),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        CustomSnackBar.error('Não foi possível salvar a nota'),
-      );
+      if (ok) {
+        await _load();
+        ScaffoldMessenger.of(context).showSnackBar(
+          CustomSnackBar.success('Nota adicionada', icon: Icons.note_add),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          CustomSnackBar.error('Não foi possível salvar a nota'),
+        );
+      }
+    } finally {
+      tituloController.dispose();
+      noteController.dispose();
     }
   }
 }

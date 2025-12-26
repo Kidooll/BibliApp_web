@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:bibli_app/features/gamification/services/achievement_service.dart';
 import 'package:bibli_app/features/gamification/services/gamification_service.dart';
 import 'package:bibli_app/core/services/log_service.dart';
 import 'package:bibli_app/core/constants/app_constants.dart';
@@ -45,6 +46,7 @@ class AuthService {
 
       // Limpar cache de gamificação
       await GamificationService.clearCache();
+      await AchievementService.clearCache(userId: currentUser?.id);
 
       // Limpar outros caches que possam existir
       await prefs.remove('user_preferences');

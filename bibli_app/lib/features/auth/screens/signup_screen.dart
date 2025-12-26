@@ -23,14 +23,12 @@ class _SignupScreenState extends State<SignupScreen> {
   // Validação em tempo real
   bool _isNameValid = false;
   bool _isEmailValid = false;
-  bool _isPasswordValid = false;
 
   @override
   void initState() {
     super.initState();
     _nameController.addListener(_validateName);
     _emailController.addListener(_validateEmail);
-    _passwordController.addListener(_validatePassword);
   }
 
   void _validateName() {
@@ -42,12 +40,6 @@ class _SignupScreenState extends State<SignupScreen> {
   void _validateEmail() {
     setState(() {
       _isEmailValid = EmailValidator.isValid(_emailController.text);
-    });
-  }
-
-  void _validatePassword() {
-    setState(() {
-      _isPasswordValid = PasswordValidator.isStrong(_passwordController.text);
     });
   }
 
@@ -365,7 +357,6 @@ class _SignupScreenState extends State<SignupScreen> {
   void dispose() {
     _nameController.removeListener(_validateName);
     _emailController.removeListener(_validateEmail);
-    _passwordController.removeListener(_validatePassword);
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();

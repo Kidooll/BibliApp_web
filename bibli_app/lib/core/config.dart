@@ -56,7 +56,9 @@ class AppConfig {
 
   static void ensureSupabaseConfig() {
     // Validação já é feita nos getters
-    final _ = supabaseUrl;
-    final __ = supabaseAnonKey;
+    final supabaseUrlValue = supabaseUrl;
+    final supabaseAnonKeyValue = supabaseAnonKey;
+    supabaseUrlValue;
+    supabaseAnonKeyValue;
   }
 }

@@ -36,6 +36,12 @@ class _BibleScreenState extends State<BibleScreen> {
     _registerBibleMission();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadTranslation() async {
     final saved = await BiblePrefs.getTranslation();
     if (!mounted) return;

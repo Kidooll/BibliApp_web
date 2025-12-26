@@ -93,14 +93,10 @@ class GamificationService {
 
       // Buscar dados do usuário
       final userStats = await _getUserStatsFromSupabase(user.id);
-      final achievements = await _getUserAchievementsFromSupabase(user.id);
       final totalXp = await _getUserTotalXpFromSupabase(user.id);
 
       // Atualizar cache
       _localCache['user_stats'] = userStats?.toJson();
-      _localCache['achievements'] = achievements
-          .map((a) => a.toJson())
-          .toList();
       _localCache['total_xp'] = totalXp;
       _lastSync = DateTime.now();
 
@@ -523,13 +519,26 @@ class GamificationService {
       
       final totalXp = await getTotalXp();
       
-      return await AchievementService.checkAndUnlockAchievements(
+      final newlyUnlocked = await AchievementService.checkAndUnlockAchievements(
         currentStreak: userStats.currentStreakDays,
         totalXp: totalXp,
         devotionalCount: userStats.totalDevotionalsRead,
         hasReadDevotional: userStats.totalDevotionalsRead > 0,
         hasListenedAudio: false, // TODO: implementar tracking de áudio
+        totalHighlights: userStats.totalHighlights,
+        chaptersReadCount: userStats.chaptersReadCount,
       );
+      if (newlyUnlocked.isNotEmpty) {
+        for (final achievement in newlyUnlocked) {
+          if (achievement.xpReward <= 0) continue;
+          await addXp(
+            actionName: 'achievement_unlocked',
+            xpAmount: achievement.xpReward,
+            description: 'Conquista: ${achievement.title}',
+          );
+        }
+      }
+      return newlyUnlocked;
     } catch (e, stack) {
       LogService.error('Erro ao verificar conquistas', e, stack, 'GamificationService');
       return [];
@@ -654,43 +663,13 @@ class GamificationService {
 
   // Obter todas as conquistas
   static Future<List<Achievement>> getAllAchievements() async {
-    try {
-      final response = await Supabase.instance.client
-          .from('achievements')
-          .select()
-          .eq('is_active', true)
-          .order('requirement_value');
-
-      return response.map((json) => Achievement.fromJson(json)).toList();
-    } catch (e, stack) {
-      LogService.error('Erro ao obter conquistas', e, stack, 'GamificationService');
-      return [];
-    }
+    return AchievementService.getAchievements();
   }
 
   // Obter conquistas do usuário
   static Future<List<Achievement>> getUserAchievements() async {
-    await _syncIfNeeded();
-
-    final dynamic achievementsData = _localCache['achievements'] ?? [];
-    final List<dynamic> list = achievementsData is List
-        ? achievementsData
-        : <dynamic>[];
-
-    final List<Achievement> parsed = [];
-    for (final item in list) {
-      try {
-        if (item is Achievement) {
-          parsed.add(item);
-        } else if (item is Map) {
-          parsed.add(Achievement.fromJson(Map<String, dynamic>.from(item)));
-        }
-      } catch (_) {
-        // ignora entradas inválidas
-      }
-    }
-
-    return parsed.where((a) => a.isUnlocked).toList();
+    final local = await AchievementService.getAchievements();
+    return local.where((a) => a.isUnlocked).toList();
   }
 
   /// Retorna as últimas transações de XP para exibir histórico (limite padrão: 3)
@@ -728,30 +707,6 @@ class GamificationService {
     } catch (e, stack) {
       LogService.error('Erro ao obter estatísticas do Supabase', e, stack, 'GamificationService');
       return null;
-    }
-  }
-
-  static Future<List<Achievement>> _getUserAchievementsFromSupabase(
-    String userId,
-  ) async {
-    try {
-      final response = await Supabase.instance.client
-          .from('user_achievements')
-          .select('''
-            achievement_id,
-            unlocked_at,
-            achievements (*)
-          ''')
-          .eq('user_id', userId);
-
-      return response.map((json) {
-        final achievementData = json['achievements'] as Map<String, dynamic>;
-        achievementData['unlocked_at'] = json['unlocked_at'];
-        return Achievement.fromJson(achievementData);
-      }).toList();
-    } catch (e, stack) {
-      LogService.error('Erro ao obter conquistas do Supabase', e, stack, 'GamificationService');
-      return [];
     }
   }
 

@@ -1,7 +1,5 @@
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:bibli_app/core/services/log_service.dart';
 
 class MonitoringService {
@@ -11,14 +9,6 @@ class MonitoringService {
     if (_initialized) return;
 
     try {
-      // Configurar informações do app no Sentry
-      final packageInfo = await PackageInfo.fromPlatform();
-      await Sentry.configureScope((scope) {
-        scope.setTag('app_version', packageInfo.version);
-        scope.setTag('build_number', packageInfo.buildNumber);
-        scope.setTag('environment', kDebugMode ? 'development' : 'production');
-      });
-
       // Criar tabela de eventos se não existir
       await _createEventsTableIfNeeded();
 

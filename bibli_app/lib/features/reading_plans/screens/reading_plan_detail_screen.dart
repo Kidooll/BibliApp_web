@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/bible/services/bible_prefs.dart';
 import 'package:bibli_app/features/bible/screens/verses_screen.dart';
 import 'package:bibli_app/features/bible/services/bible_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
 import 'package:bibli_app/features/reading_plans/models/reading_plan.dart';
 import 'package:bibli_app/features/reading_plans/services/reading_plans_service.dart';
 
@@ -78,8 +79,8 @@ class _ReadingPlanDetailScreenState extends State<ReadingPlanDetailScreen> {
     if (user == null || _claimingReward) return;
     setState(() => _claimingReward = true);
 
-    final xp = _xpForPlan(widget.plan.duration);
-    final talents = _talentsForXp(xp);
+    final xp = ReadingPlanRewards.xpForDuration(widget.plan.duration);
+    final talents = ReadingPlanRewards.talentsForXp(xp);
     final success = await _service.claimPlanReward(
       userId: user.id,
       planId: widget.plan.id,
@@ -634,8 +635,8 @@ class _ReadingPlanDetailScreenState extends State<ReadingPlanDetailScreen> {
   }
 
   Widget _buildCompletionCard() {
-    final xp = _xpForPlan(widget.plan.duration);
-    final talents = _talentsForXp(xp);
+    final xp = ReadingPlanRewards.xpForDuration(widget.plan.duration);
+    final talents = ReadingPlanRewards.talentsForXp(xp);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1070,23 +1071,6 @@ class _ReadingPlanDetailScreenState extends State<ReadingPlanDetailScreen> {
       start = (end - 4).clamp(1, totalDays);
     }
     return List<int>.generate(end - start + 1, (i) => start + i);
-  }
-
-  int _xpForPlan(int duration) {
-    if (duration <= 14) return 100;
-    if (duration <= 30) return 150;
-    if (duration <= 40) return 175;
-    if (duration <= 60) return 200;
-    if (duration <= 90) return 250;
-    return 300;
-  }
-
-  int _talentsForXp(int xp) {
-    if (xp <= 110) return 5;
-    if (xp <= 160) return 7;
-    if (xp <= 190) return 9;
-    if (xp <= 230) return 11;
-    return 15;
   }
 
   String? _assetForPlanTitle(String title) {

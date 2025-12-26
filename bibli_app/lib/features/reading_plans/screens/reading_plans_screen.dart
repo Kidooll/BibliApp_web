@@ -362,8 +362,8 @@ class _ReadingPlansScreenState extends State<ReadingPlansScreen> {
   Widget _buildProgressCard(ReadingPlan plan, ReadingProgress? progress) {
     final day = (progress?.currentDay ?? 1).clamp(1, plan.duration);
     final percent = ((progress?.percentage ?? 0) / 100).clamp(0.0, 1.0);
-    final xp = _xpForPlan(plan.duration);
-    final talents = _talentsForXp(xp);
+    final xp = ReadingPlanRewards.xpForDuration(plan.duration);
+    final talents = ReadingPlanRewards.talentsForXp(xp);
     final isCompleted = (progress?.percentage ?? 0) >= 100;
     return GestureDetector(
       onTap: () {
@@ -514,8 +514,8 @@ class _ReadingPlansScreenState extends State<ReadingPlansScreen> {
   }
 
   Widget _buildPlanCard(ReadingPlan plan) {
-    final xp = _xpForPlan(plan.duration);
-    final talents = _talentsForXp(xp);
+    final xp = ReadingPlanRewards.xpForDuration(plan.duration);
+    final talents = ReadingPlanRewards.talentsForXp(xp);
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -698,23 +698,6 @@ class _ReadingPlansScreenState extends State<ReadingPlansScreen> {
               child: Image.asset(asset, fit: BoxFit.cover),
             ),
     );
-  }
-
-  int _xpForPlan(int duration) {
-    if (duration <= 14) return 100;
-    if (duration <= 30) return 150;
-    if (duration <= 40) return 175;
-    if (duration <= 60) return 200;
-    if (duration <= 90) return 250;
-    return 300;
-  }
-
-  int _talentsForXp(int xp) {
-    if (xp <= 110) return 5;
-    if (xp <= 160) return 7;
-    if (xp <= 190) return 9;
-    if (xp <= 230) return 11;
-    return 15;
   }
 
   List<ReadingPlan> _applySort(List<ReadingPlan> plans) {

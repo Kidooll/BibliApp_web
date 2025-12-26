@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -12,6 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/missions/services/weekly_challenges_service.dart';
 import 'package:bibli_app/core/services/log_service.dart';
 import 'package:bibli_app/core/constants/app_constants.dart';
+import 'package:bibli_app/core/services/cache_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -40,7 +40,14 @@ class _QuoteScreenState extends State<QuoteScreen> {
 
   Future<void> _loadWeeklyImages() async {
     try {
-      _backgroundImages = await _getWeeklyImages();
+      final weekNumber = _getWeekNumber(DateTime.now());
+      _backgroundImages = await CacheService.getWeeklyQuoteImages(
+        weekNumber: weekNumber,
+        generator: _generateWeeklyImages,
+      );
+      if (_backgroundImages.isEmpty) {
+        _backgroundImages = _getFallbackImages();
+      }
       _currentImageIndex = Random().nextInt(_backgroundImages.length);
       _failedImageAttempts = 0;
     } catch (e) {
@@ -67,70 +74,6 @@ class _QuoteScreenState extends State<QuoteScreen> {
       'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1080&h=1920&fit=crop',
       'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1080&h=1920&fit=crop',
     ];
-  }
-
-  Future<List<String>> _getWeeklyImages() async {
-    final prefs = await SharedPreferences.getInstance();
-    final now = DateTime.now();
-    final weekNumber = _getWeekNumber(now);
-    final cacheKey = 'quote_images_week_$weekNumber';
-    const lastUpdateKey = 'quote_images_last_update';
-    
-    // Limpar cache antigo primeiro
-    await _cleanOldImageCache(prefs, weekNumber);
-    
-    // Verificar se temos cache válido
-    final cachedImages = prefs.getStringList(cacheKey);
-    final lastUpdate = prefs.getString(lastUpdateKey);
-    
-    if (cachedImages != null && cachedImages.length == 8 && lastUpdate != null) {
-      final lastUpdateDate = DateTime.parse(lastUpdate);
-      final daysDiff = now.difference(lastUpdateDate).inDays;
-      
-      // Se cache tem menos de 7 dias, usar cache
-      if (daysDiff < 7) {
-        return cachedImages;
-      }
-    }
-    
-    // Gerar novo conjunto semanal
-    final newImages = _generateWeeklyImages(weekNumber);
-    
-    // Salvar no cache
-    await prefs.setStringList(cacheKey, newImages);
-    await prefs.setString(lastUpdateKey, now.toIso8601String());
-    
-    // Limpar cache de imagens do Flutter
-    _clearFlutterImageCache();
-    
-    return newImages;
-  }
-
-  Future<void> _cleanOldImageCache(SharedPreferences prefs, int currentWeek) async {
-    try {
-      final keys = prefs.getKeys();
-      final imageCacheKeys = keys.where((key) => key.startsWith('quote_images_week_')).toList();
-      
-      for (final key in imageCacheKeys) {
-        final weekStr = key.replaceAll('quote_images_week_', '');
-        final week = int.tryParse(weekStr);
-        
-        if (week != null && (currentWeek - week).abs() > 1) {
-          await prefs.remove(key);
-        }
-      }
-    } catch (e) {
-      LogService.warning('Erro ao limpar cache antigo de imagens', 'QuoteScreen');
-    }
-  }
-
-  void _clearFlutterImageCache() {
-    try {
-      PaintingBinding.instance.imageCache.clear();
-      PaintingBinding.instance.imageCache.clearLiveImages();
-    } catch (e) {
-      LogService.warning('Erro ao limpar cache de imagens do Flutter', 'QuoteScreen');
-    }
   }
 
   int _getWeekNumber(DateTime date) {

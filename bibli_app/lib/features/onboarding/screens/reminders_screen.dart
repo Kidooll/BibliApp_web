@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bibli_app/core/constants/app_constants.dart';
 import 'package:bibli_app/core/services/log_service.dart';
+import 'package:bibli_app/core/services/notification_service.dart';
 
 /// Tela de seleção de horário e dias para lembrete de devocional
 class RemindersScreen extends StatefulWidget {
@@ -17,37 +18,41 @@ class _RemindersScreenState extends State<RemindersScreen> {
   final List<String> _days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
   Future<void> _savePreferencesAndContinue() async {
+    final formattedTime = _selectedTime.format(context);
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('reminder_time', _selectedTime.format(context));
+      await prefs.setString('reminder_time', formattedTime);
+      await prefs.setInt('reminder_hour', _selectedTime.hour);
+      await prefs.setInt('reminder_minute', _selectedTime.minute);
       await prefs.setStringList(
         'reminder_days',
         _selectedDays.map((d) => d ? '1' : '0').toList(),
       );
       await prefs.setBool('reminder_configured', true);
+      await prefs.setBool('reminder_skipped', false);
+
+      await NotificationService.scheduleFromPreferences();
       
-      if (mounted) {
-        final messenger = ScaffoldMessenger.of(context);
-        final navigator = Navigator.of(context);
-        
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('✅ Lembretes configurados com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        navigator.pushReplacementNamed('/home');
-      }
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+      
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('✅ Lembretes configurados com sucesso!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      navigator.pushReplacementNamed('/home');
     } catch (e, stack) {
       LogService.error('Erro ao salvar lembretes', e, stack, 'RemindersScreen');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('❌ Erro ao salvar configurações'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ Erro ao salvar configurações'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -55,15 +60,16 @@ class _RemindersScreenState extends State<RemindersScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('reminder_skipped', true);
+      await prefs.setBool('reminder_configured', false);
+
+      await NotificationService.cancelDailyReadingReminder();
       
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/home');
-      }
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/home');
     } catch (e, stack) {
       LogService.error('Erro ao pular lembretes', e, stack, 'RemindersScreen');
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/home');
-      }
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/home');
     }
   }
 

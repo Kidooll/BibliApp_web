@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/home/services/home_service.dart';
 import 'package:bibli_app/features/home/models/user_profile.dart';
-import 'package:bibli_app/features/home/models/devotional.dart';
+import 'package:bibli_app/core/models/devotional.dart';
 import 'package:bibli_app/features/home/models/reading_streak.dart';
 import 'package:bibli_app/features/devotionals/screens/devotional_screen.dart';
 import 'package:bibli_app/features/devotionals/services/devotional_access_service.dart';
@@ -770,7 +770,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Devocional
           FutureBuilder<bool>(
             future: displayDevotional != null
-                ? _canAccessDevotional(displayDevotional!)
+                ? _canAccessDevotional(displayDevotional)
                 : Future.value(false),
             builder: (context, snapshot) {
               final canAccess = snapshot.data ?? false;
@@ -780,15 +780,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
               final titleText = hasDevotional
                   ? (canAccess
-                      ? displayDevotional!.title
+                      ? displayDevotional.title
                       : 'Devocional bloqueado')
                   : 'Nenhum devocional disponível para esta data';
               final verseText = (hasDevotional && canAccess)
-                  ? (displayDevotional!.verse1 ??
+                  ? (displayDevotional.verse1 ??
                       'O Senhor é bom para com aqueles cuja esperança está nele, para com aqueles que o buscam;')
                   : 'Conclua a leitura do dia anterior para desbloquear.';
               final verseRef = (hasDevotional && canAccess)
-                  ? (displayDevotional!.verse2 ?? 'Lamentações 3:25')
+                  ? (displayDevotional.verse2 ?? 'Lamentações 3:25')
                   : '';
 
               return Column(
@@ -820,7 +820,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => DevotionalScreen(
-                                        devotionalId: displayDevotional!.id,
+                                        devotionalId: displayDevotional.id,
                                       ),
                                     ),
                                   );

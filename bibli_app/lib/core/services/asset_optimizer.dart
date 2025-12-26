@@ -1,27 +1,45 @@
+import 'dart:collection';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 class AssetOptimizer {
-  static final Map<String, Uint8List> _imageCache = {};
+  static final LinkedHashMap<String, Uint8List> _imageCache = LinkedHashMap();
   static const int _maxCacheSize = 50 * 1024 * 1024; // 50MB
   static int _currentCacheSize = 0;
 
   /// Carrega imagem otimizada com cache
   static Future<Uint8List> loadOptimizedImage(String assetPath) async {
-    if (_imageCache.containsKey(assetPath)) {
-      return _imageCache[assetPath]!;
+    final cached = _imageCache.remove(assetPath);
+    if (cached != null) {
+      // Reinsere para manter a ordem LRU.
+      _imageCache[assetPath] = cached;
+      return cached;
     }
 
     final data = await rootBundle.load(assetPath);
     final bytes = data.buffer.asUint8List();
 
-    if (_currentCacheSize + bytes.length < _maxCacheSize) {
-      _imageCache[assetPath] = bytes;
-      _currentCacheSize += bytes.length;
+    if (bytes.length > _maxCacheSize) {
+      return bytes;
     }
 
+    _evictIfNeeded(bytes.length);
+    _imageCache[assetPath] = bytes;
+    _currentCacheSize += bytes.length;
+
     return bytes;
+  }
+
+  static void _evictIfNeeded(int incomingBytes) {
+    while (_currentCacheSize + incomingBytes > _maxCacheSize &&
+        _imageCache.isNotEmpty) {
+      final oldestKey = _imageCache.keys.first;
+      final oldestBytes = _imageCache.remove(oldestKey);
+      if (oldestBytes != null) {
+        _currentCacheSize -= oldestBytes.length;
+      }
+    }
   }
 
   /// Limpa cache de imagens

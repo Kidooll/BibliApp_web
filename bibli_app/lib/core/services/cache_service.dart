@@ -5,6 +5,7 @@ import 'package:bibli_app/core/services/log_service.dart';
 class CacheService {
   static const String _lastCleanupKey = 'cache_last_cleanup';
   static const int _cleanupIntervalDays = 3; // Limpar cache a cada 3 dias
+  static const String _quoteImagesLastUpdateKey = 'quote_images_last_update';
 
   /// Limpa automaticamente cache antigo se necessário
   static Future<void> autoCleanup() async {
@@ -91,6 +92,37 @@ class CacheService {
     } catch (e) {
       LogService.warning('Erro ao limpar cache de imagens de citações', 'CacheService');
     }
+  }
+
+  static Future<List<String>> getWeeklyQuoteImages({
+    required int weekNumber,
+    required List<String> Function(int weekNumber) generator,
+    int maxAgeDays = 7,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await _cleanQuoteImageCache(prefs);
+
+    final cacheKey = 'quote_images_week_$weekNumber';
+    final cachedImages = prefs.getStringList(cacheKey);
+    final lastUpdate = prefs.getString(_quoteImagesLastUpdateKey);
+
+    if (cachedImages != null && cachedImages.length == 8 && lastUpdate != null) {
+      final lastUpdateDate = DateTime.tryParse(lastUpdate);
+      if (lastUpdateDate != null &&
+          DateTime.now().difference(lastUpdateDate).inDays < maxAgeDays) {
+        return cachedImages;
+      }
+    }
+
+    final newImages = generator(weekNumber);
+    await prefs.setStringList(cacheKey, newImages);
+    await prefs.setString(
+      _quoteImagesLastUpdateKey,
+      DateTime.now().toIso8601String(),
+    );
+    _clearFlutterImageCache();
+
+    return newImages;
   }
 
   static Future<void> _cleanGamificationCache(SharedPreferences prefs) async {

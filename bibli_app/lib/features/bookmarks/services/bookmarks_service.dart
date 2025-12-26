@@ -269,6 +269,29 @@ class BookmarksService {
     }
   }
 
+  Future<bool> isDevotionalFavorited(int devotionalId) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) return false;
+      final existing = await _supabase
+          .from('bookmarks')
+          .select('id')
+          .eq('user_profile_id', user.id)
+          .eq('bookmark_type', 'devotional')
+          .eq('devotional_id', devotionalId)
+          .maybeSingle();
+      return existing != null;
+    } catch (e, stack) {
+      LogService.error(
+        'Erro ao verificar favorito de devocional',
+        e,
+        stack,
+        'BookmarksService',
+      );
+      return false;
+    }
+  }
+
   /// Lista bookmarks do usuário filtrando por tipo, com paginação opcional.
   Future<List<Map<String, dynamic>>> listBookmarks({
     String? type,

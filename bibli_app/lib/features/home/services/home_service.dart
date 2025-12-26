@@ -1,10 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/home/models/user_profile.dart';
-import 'package:bibli_app/features/home/models/devotional.dart';
+import 'package:bibli_app/core/models/devotional.dart';
 import 'package:bibli_app/features/home/models/reading_streak.dart';
 import 'package:bibli_app/core/services/log_service.dart';
 import 'package:bibli_app/core/services/server_time_service.dart';
 import 'package:bibli_app/features/devotionals/services/devotional_access_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
 
 class HomeService {
   final SupabaseClient supabase;
@@ -31,7 +32,7 @@ class HomeService {
           'total_devotionals_read': 0,
           'total_xp': 0,
           'current_level': 1,
-          'xp_to_next_level': 100,
+          'xp_to_next_level': LevelRequirements.initialXpToNextLevel,
           'coins': 0,
           'weekly_goal': 7,
         });

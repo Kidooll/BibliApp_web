@@ -80,3 +80,28 @@ class AppDimensions {
   static const borderRadius = 12.0;
   static const borderRadiusLarge = 16.0;
 }
+
+class ReminderDefaults {
+  static const hour = 8;
+  static const minute = 0;
+  static const time = TimeOfDay(hour: hour, minute: minute);
+}
+
+class ReadingPlanRewards {
+  static int xpForDuration(int duration) {
+    if (duration <= 14) return 100;
+    if (duration <= 30) return 150;
+    if (duration <= 40) return 175;
+    if (duration <= 60) return 200;
+    if (duration <= 90) return 250;
+    return 300;
+  }
+
+  static int talentsForXp(int xp) {
+    if (xp <= 110) return 5;
+    if (xp <= 160) return 7;
+    if (xp <= 190) return 9;
+    if (xp <= 230) return 11;
+    return 15;
+  }
+}

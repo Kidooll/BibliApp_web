@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:bibli_app/features/devotionals/models/devotional.dart';
+import 'package:bibli_app/core/models/devotional.dart';
 import 'package:bibli_app/features/gamification/services/gamification_service.dart';
 import 'package:bibli_app/features/missions/services/missions_service.dart';
 import 'package:bibli_app/features/missions/services/weekly_challenges_service.dart';
