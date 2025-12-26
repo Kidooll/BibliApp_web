@@ -27,7 +27,8 @@ class DevotionalAccessService {
           .eq('user_profile_id', user.id)
           .eq('devotional_id', devotionalId)
           .eq('read_date', publishedDateStr)
-          .limit(1);
+          .limit(1)
+          .timeout(const Duration(seconds: 8));
       return res.isNotEmpty;
     } catch (_) {
       return false;

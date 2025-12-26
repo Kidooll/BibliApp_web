@@ -21,7 +21,8 @@ class DevotionalService {
           .from('devotionals')
           .select()
           .eq('published_date', today)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 8));
 
       if (response == null) return null;
       return Devotional.fromJson(response);
@@ -38,7 +39,8 @@ class DevotionalService {
           .from('devotionals')
           .select()
           .eq('id', id)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 8));
 
       if (response == null) return null;
       final devotional = Devotional.fromJson(response);
@@ -62,7 +64,8 @@ class DevotionalService {
           .from('devotionals')
           .select()
           .order('published_date', ascending: false)
-          .limit(limit);
+          .limit(limit)
+          .timeout(const Duration(seconds: 8));
 
       return response.map((json) => Devotional.fromJson(json)).toList();
     } catch (e, stack) {
@@ -85,7 +88,8 @@ class DevotionalService {
           .select('id')
           .eq('id', devotionalId)
           .eq('published_date', today)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 8));
       if (devotionalToday == null) return false;
 
       // Verificar se já foi lido hoje
@@ -106,7 +110,7 @@ class DevotionalService {
           'user_profile_id': user.id,
           'read_at': readAt,
           'read_date': today,
-        });
+        }).timeout(const Duration(seconds: 8));
         
         // Adicionar em reading_history para o calendário
         await _supabase.from('reading_history').insert({
@@ -114,7 +118,7 @@ class DevotionalService {
           'devotional_id': devotionalId,
           'read_at': readAt,
           'read_date': today,
-        });
+        }).timeout(const Duration(seconds: 8));
       } on PostgrestException catch (e) {
         // Tratamento de unicidade (unique_violation)
         if (e.code == '23505') {
@@ -161,7 +165,8 @@ class DevotionalService {
           .select('id')
           .eq('user_profile_id', userId)
           .eq('read_date', today)
-          .limit(1);
+          .limit(1)
+          .timeout(const Duration(seconds: 8));
       return res.isNotEmpty;
     } catch (_) {
       return false;
@@ -191,7 +196,8 @@ class DevotionalService {
           .eq('devotional_id', devotionalId)
           .eq('user_profile_id', userId)
           .eq('read_date', today)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 8));
 
       return response != null;
     } catch (e, stack) {

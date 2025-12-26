@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/core/models/devotional.dart';
 import 'package:bibli_app/features/devotionals/services/devotional_service.dart';
@@ -18,23 +19,32 @@ class DevotionalScreen extends StatefulWidget {
 }
 
 class _DevotionalScreenState extends State<DevotionalScreen> {
+  static const String _fontScaleKey = 'devotional_font_scale';
+  static const double _fontScaleMin = 0.85;
+  static const double _fontScaleMax = 1.4;
+  static const int _fontScaleDivisions = 11;
+
   late DevotionalService _devotionalService;
   late BookmarksService _bookmarksService;
   Devotional? _devotional;
   bool _isLoading = true;
   bool _isFavorite = false;
   String? _errorMessage;
+  double _fontScale = 1.0;
 
   @override
   void initState() {
     super.initState();
     _devotionalService = DevotionalService(Supabase.instance.client);
     _bookmarksService = BookmarksService(Supabase.instance.client);
-    _loadDevotional();
+    _loadFontScale();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadDevotional();
+    });
   }
 
   Future<void> _loadDevotional() async {
-    final messenger = ScaffoldMessenger.of(context);
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -70,8 +80,7 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
                 // Mostrar animação de XP ganho
                 _showXpGainedAnimation();
               } else {
-                if (!mounted) return;
-                messenger.showSnackBar(
+                _showSnackBar(
                   const SnackBar(
                     content: Text('Não foi possível registrar a leitura.'),
                     duration: Duration(seconds: 2),
@@ -123,7 +132,7 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
   }
 
   void _showXpGainedAnimation() {
-    ScaffoldMessenger.of(context).showSnackBar(
+    _showSnackBar(
       SnackBar(
         content: const Row(
           children: [
@@ -146,9 +155,277 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
     );
   }
 
+  void _showSnackBar(SnackBar snackBar) {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    });
+  }
+
+  Future<void> _loadFontScale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getDouble(_fontScaleKey);
+    if (!mounted) return;
+    setState(() {
+      _fontScale = (stored ?? 1.0).clamp(_fontScaleMin, _fontScaleMax);
+    });
+  }
+
+  Future<void> _saveFontScale(double value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_fontScaleKey, value);
+  }
+
+  void _openFontScaleSheet() {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        double tempScale = _fontScale;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final displayValue =
+                ((tempScale * 100).round() / 100).toStringAsFixed(2);
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Tamanho da fonte',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        displayValue,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Slider(
+                    min: _fontScaleMin,
+                    max: _fontScaleMax,
+                    divisions: _fontScaleDivisions,
+                    value: tempScale,
+                    label: displayValue,
+                    onChanged: (value) {
+                      setModalState(() {
+                        tempScale = value;
+                      });
+                      if (!mounted) return;
+                      setState(() {
+                        _fontScale = value;
+                      });
+                      _saveFontScale(value);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('A-'),
+                      Text('A+'),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const background = Color(0xFFF8F6F2);
+
+    final content = _isLoading
+        ? const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          )
+        : _devotional == null
+            ? Center(
+                child: Text(
+                  _errorMessage ?? 'Nenhum devocional encontrado para hoje',
+                  style: const TextStyle(color: Color(0xFF2D2D2D)),
+                ),
+              )
+            : MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: TextScaler.linear(_fontScale),
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Seção: Devocional de hoje
+                      const Text(
+                        'Devocional de hoje',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2D2D2D),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _devotional!.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF2D2D2D),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Card com versículo bíblico
+                      if (_devotional!.verse != null) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppColors.analogous,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _devotional!.verse!,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  height: 1.5,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  _devotional!.word ?? '',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Seção: Devocional
+                      if (_devotional!.reflection != null) ...[
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.lightbulb_outline,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Devocional',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2D2D2D),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _devotional!.reflection!,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF2D2D2D),
+                            height: 1.6,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Seção: Como Colocar em prática
+                      if (_devotional!.practicalApplication != null) ...[
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Como Colocar em prática',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2D2D2D),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _devotional!.practicalApplication!,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF2D2D2D),
+                            height: 1.6,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Seção: Oração
+                      if (_devotional!.prayer != null) ...[
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.favorite,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Oração',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2D2D2D),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _devotional!.prayer!,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF2D2D2D),
+                            height: 1.6,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ],
+                  ),
+                ),
+              );
 
     return Scaffold(
       backgroundColor: background,
@@ -181,7 +458,6 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
               color: _isFavorite ? Colors.red : const Color(0xFF2D2D2D),
             ),
             onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
               final devotionalId = _devotional?.id;
               if (devotionalId == null) return;
               final ok =
@@ -192,7 +468,7 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
                   _isFavorite = !_isFavorite;
                 });
               } else {
-                messenger.showSnackBar(
+                _showSnackBar(
                   const SnackBar(
                     content: Text('Não foi possível atualizar o favorito.'),
                   ),
@@ -203,182 +479,12 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
           IconButton(
             icon: const Icon(Icons.text_fields, color: Color(0xFF2D2D2D)),
             onPressed: () {
-              // TODO: Implementar ajuste de tamanho de fonte
+              _openFontScaleSheet();
             },
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : _devotional == null
-          ? Center(
-              child: Text(
-                _errorMessage ?? 'Nenhum devocional encontrado para hoje',
-                style: const TextStyle(color: Color(0xFF2D2D2D)),
-              ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Seção: Devocional de hoje
-                  const Text(
-                    'Devocional de hoje',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D2D2D),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _devotional!.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF2D2D2D),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Card com versículo bíblico
-                  if (_devotional!.verse != null) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppColors.analogous,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _devotional!.verse!,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              height: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              _devotional!.word ?? '',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Seção: Devocional
-                  if (_devotional!.reflection != null) ...[
-                    const Row(
-                      children: [
-                        Icon(
-                          Icons.lightbulb_outline,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Devocional',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D2D2D),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _devotional!.reflection!,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF2D2D2D),
-                        height: 1.6,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Seção: Como Colocar em prática
-                  if (_devotional!.practicalApplication != null) ...[
-                    const Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Como Colocar em prática',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D2D2D),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _devotional!.practicalApplication!,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF2D2D2D),
-                        height: 1.6,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Seção: Oração
-                  if (_devotional!.prayer != null) ...[
-                    const Row(
-                      children: [
-                        Icon(
-                          Icons.favorite,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Oração',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D2D2D),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _devotional!.prayer!,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF2D2D2D),
-                        height: 1.6,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                ],
-              ),
-            ),
+      body: content,
     );
   }
 }

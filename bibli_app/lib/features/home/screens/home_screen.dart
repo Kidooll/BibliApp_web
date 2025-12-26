@@ -830,10 +830,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                canAccess ? Icons.menu_book : Icons.lock,
-                                size: 16,
-                              ),
                               const SizedBox(width: 4),
                               Text(
                                 isChecking
