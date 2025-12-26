@@ -1,5 +1,5 @@
 name: bibli_app
-description: "A new Flutter project."
+description: "Um app para ajudar na leitura e compreensão da Bíblia Sagrada."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -37,6 +37,7 @@ dev_dependencies:
   mockito: ^5.4.2
   mocktail: ^1.0.3
   build_runner: ^2.4.7
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
@@ -91,3 +92,10 @@ flutter_native_splash:
   image: assets/images/logo.png
   color_dark: "#005954"
   image_dark: assets/images/logo.png
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
