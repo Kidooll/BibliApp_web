@@ -131,6 +131,32 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
     return '$year-$month-$day';
   }
 
+  List<Widget> _buildParagraphs(String text, TextStyle style) {
+    final normalized =
+        text.replaceAll('\r\n', '\n').replaceAll('\r', '\n').trim();
+    if (normalized.isEmpty) return [];
+    final parts = normalized
+        .split(RegExp(r'\n+'))
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    final widgets = <Widget>[];
+    for (var i = 0; i < parts.length; i++) {
+      widgets.add(
+        Text(
+          parts[i],
+          style: style,
+          textAlign: TextAlign.justify,
+        ),
+      );
+      if (i != parts.length - 1) {
+        widgets.add(const SizedBox(height: 12));
+      }
+    }
+    return widgets;
+  }
+
   void _showXpGainedAnimation() {
     _showSnackBar(
       SnackBar(
@@ -181,6 +207,10 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
+      backgroundColor: AppColors.background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         double tempScale = _fontScale;
         return StatefulBuilder(
@@ -200,41 +230,56 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       Text(
                         displayValue,
                         style: const TextStyle(
                           fontSize: 14,
-                          color: Colors.black54,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Slider(
-                    min: _fontScaleMin,
-                    max: _fontScaleMax,
-                    divisions: _fontScaleDivisions,
-                    value: tempScale,
-                    label: displayValue,
-                    onChanged: (value) {
-                      setModalState(() {
-                        tempScale = value;
-                      });
-                      if (!mounted) return;
-                      setState(() {
-                        _fontScale = value;
-                      });
-                      _saveFontScale(value);
-                    },
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      activeTrackColor: AppColors.primary,
+                      inactiveTrackColor: AppColors.triadic,
+                      thumbColor: AppColors.primary,
+                      overlayColor: AppColors.primary.withOpacity(0.12),
+                      valueIndicatorColor: AppColors.complementary,
+                      valueIndicatorTextStyle: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: Slider(
+                      min: _fontScaleMin,
+                      max: _fontScaleMax,
+                      divisions: _fontScaleDivisions,
+                      value: tempScale,
+                      label: displayValue,
+                      onChanged: (value) {
+                        setModalState(() {
+                          tempScale = value;
+                        });
+                        if (!mounted) return;
+                        setState(() {
+                          _fontScale = value;
+                        });
+                        _saveFontScale(value);
+                      },
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('A-'),
-                      Text('A+'),
+                      Text('A-', style: TextStyle(color: AppColors.textSecondary)),
+                      Text('A+', style: TextStyle(color: AppColors.textSecondary)),
                     ],
                   ),
                 ],
@@ -348,14 +393,14 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Text(
-                          _devotional!.reflection!,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF2D2D2D),
-                            height: 1.6,
-                          ),
+                      ..._buildParagraphs(
+                        _devotional!.reflection!,
+                        const TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF2D2D2D),
+                          height: 1.6,
                         ),
+                      ),
                         const SizedBox(height: 24),
                       ],
 
@@ -380,14 +425,14 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Text(
-                          _devotional!.practicalApplication!,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF2D2D2D),
-                            height: 1.6,
-                          ),
-                        ),
+                    ..._buildParagraphs(
+                      _devotional!.practicalApplication!,
+                      const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF2D2D2D),
+                        height: 1.6,
+                      ),
+                    ),
                         const SizedBox(height: 24),
                       ],
 
@@ -412,14 +457,14 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Text(
-                          _devotional!.prayer!,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF2D2D2D),
-                            height: 1.6,
-                          ),
-                        ),
+                    ..._buildParagraphs(
+                      _devotional!.prayer!,
+                      const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF2D2D2D),
+                        height: 1.6,
+                      ),
+                    ),
                         const SizedBox(height: 24),
                       ],
                     ],
