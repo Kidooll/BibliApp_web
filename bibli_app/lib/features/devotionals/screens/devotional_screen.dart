@@ -5,6 +5,7 @@ import 'package:bibli_app/features/devotionals/models/devotional.dart';
 import 'package:bibli_app/features/devotionals/services/devotional_service.dart';
 import 'package:bibli_app/core/constants/app_constants.dart';
 import 'package:bibli_app/core/services/log_service.dart';
+import 'package:bibli_app/core/services/server_time_service.dart';
 
 class DevotionalScreen extends StatefulWidget {
   final int? devotionalId; // Se null, mostra o devocional do dia
@@ -20,6 +21,7 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
   Devotional? _devotional;
   bool _isLoading = true;
   bool _isFavorite = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -31,6 +33,7 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
   Future<void> _loadDevotional() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
     try {
@@ -44,45 +47,44 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
       }
 
       if (devotional != null) {
-        // Verificar se já foi lido hoje antes de marcar
-        final today = DateTime.now().toIso8601String().split('T')[0];
-        final user = Supabase.instance.client.auth.currentUser;
-        bool alreadyReadToday = false;
+        final serverDate =
+            await ServerTimeService.getSaoPauloDate(Supabase.instance.client);
+        if (serverDate == null) {
+          _errorMessage = 'Não foi possível validar o acesso ao devocional.';
+          devotional = null;
+        } else {
+          final devotionalDate = _formatDate(devotional.publishedDate);
+          if (devotionalDate == serverDate) {
+            final alreadyReadToday =
+                await _devotionalService.hasReadToday(devotional.id);
 
-        if (user != null) {
-          final response = await Supabase.instance.client
-              .from('read_devotionals')
-              .select('read_at')
-              .eq('devotional_id', devotional.id)
-              .eq('user_profile_id', user.id)
-              .gte('read_at', '$today 00:00:00')
-              .lte('read_at', '$today 23:59:59')
-              .maybeSingle();
+            // Marcar como lido (só se não foi lido hoje)
+            if (!alreadyReadToday) {
+              final saved = await _devotionalService.markAsRead(devotional.id);
 
-          alreadyReadToday = response != null;
-        }
-
-        // Marcar como lido (só se não foi lido hoje)
-        if (!alreadyReadToday) {
-          final saved = await _devotionalService.markAsRead(devotional.id);
-
-          if (saved) {
-            // Mostrar animação de XP ganho
-            _showXpGainedAnimation();
-          } else {
-            // Não salvo (já lido via corrida ou unicidade)
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Devocional de hoje já foi lido.'),
-                  duration: Duration(seconds: 2),
-                ),
+              if (saved) {
+                // Mostrar animação de XP ganho
+                _showXpGainedAnimation();
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Não foi possível registrar a leitura.'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
+            } else {
+              LogService.info(
+                'Devocional já lido hoje: ${devotional.id}',
+                'DevotionalScreen',
               );
             }
           }
-        } else {
-          LogService.info('Devocional já lido hoje: ${devotional.id}', 'DevotionalScreen');
         }
+      } else {
+        _errorMessage = 'Devocional indisponível ou bloqueado.';
       }
 
       if (!mounted) return;
@@ -98,16 +100,23 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
     }
   }
 
+  String _formatDate(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
   void _showXpGainedAnimation() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Row(
+        content: Row(
           children: [
-            Icon(Icons.star, color: Colors.amber),
-            SizedBox(width: 8),
+            const Icon(Icons.star, color: Colors.amber),
+            const SizedBox(width: 8),
             Text(
-              '+8 XP ganho!',
-              style: TextStyle(
+              '+${XpValues.devotionalRead} XP ganho!',
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -175,10 +184,10 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
               child: CircularProgressIndicator(color: AppColors.primary),
             )
           : _devotional == null
-          ? const Center(
+          ? Center(
               child: Text(
-                'Nenhum devocional encontrado para hoje',
-                style: TextStyle(color: Color(0xFF2D2D2D)),
+                _errorMessage ?? 'Nenhum devocional encontrado para hoje',
+                style: const TextStyle(color: Color(0xFF2D2D2D)),
               ),
             )
           : SingleChildScrollView(

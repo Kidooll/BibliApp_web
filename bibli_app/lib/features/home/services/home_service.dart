@@ -3,6 +3,8 @@ import 'package:bibli_app/features/home/models/user_profile.dart';
 import 'package:bibli_app/features/home/models/devotional.dart';
 import 'package:bibli_app/features/home/models/reading_streak.dart';
 import 'package:bibli_app/core/services/log_service.dart';
+import 'package:bibli_app/core/services/server_time_service.dart';
+import 'package:bibli_app/features/devotionals/services/devotional_access_service.dart';
 
 class HomeService {
   final SupabaseClient supabase;
@@ -66,7 +68,8 @@ class HomeService {
 
   Future<Devotional?> getTodaysDevotional() async {
     try {
-      final today = DateTime.now().toIso8601String().split('T')[0];
+      final today = await ServerTimeService.getSaoPauloDate(supabase);
+      if (today == null) return null;
       final response = await supabase
           .from('devotionals')
           .select()
@@ -90,7 +93,13 @@ class HomeService {
 
   Future<Map<String, String?>> getTodaysQuote() async {
     try {
-      final today = DateTime.now().toIso8601String().split('T')[0];
+      final today = await ServerTimeService.getSaoPauloDate(supabase);
+      if (today == null) {
+        return {
+          'citation': 'Nenhuma citação disponível no momento.',
+          'author': null,
+        };
+      }
       final response = await supabase
           .from('devotionals')
           .select('citation, author')
@@ -195,6 +204,10 @@ class HomeService {
   Future<Devotional?> getDevotionalByDate(DateTime date) async {
     try {
       final dateStr = date.toIso8601String().split('T')[0];
+      final today = await ServerTimeService.getSaoPauloDate(supabase);
+      if (today == null || dateStr.compareTo(today) > 0) {
+        return null;
+      }
       final response = await supabase
           .from('devotionals')
           .select()
@@ -202,7 +215,14 @@ class HomeService {
           .maybeSingle();
 
       if (response != null) {
-        return Devotional.fromJson(response);
+        final devotional = Devotional.fromJson(response);
+        final accessService = DevotionalAccessService(supabase);
+        final canAccess = await accessService.canAccessDevotional(
+          devotionalId: devotional.id,
+          publishedDate: devotional.publishedDate,
+        );
+        if (!canAccess) return null;
+        return devotional;
       }
       return null;
     } catch (e, stack) {

@@ -4,6 +4,8 @@ import 'package:bibli_app/features/gamification/services/gamification_service.da
 import 'package:bibli_app/features/missions/services/missions_service.dart';
 import 'package:bibli_app/features/missions/services/weekly_challenges_service.dart';
 import 'package:bibli_app/core/services/log_service.dart';
+import 'package:bibli_app/core/services/server_time_service.dart';
+import 'package:bibli_app/features/devotionals/services/devotional_access_service.dart';
 
 class DevotionalService {
   final SupabaseClient _supabase;
@@ -13,13 +15,15 @@ class DevotionalService {
   /// Busca o devocional do dia atual
   Future<Devotional?> getTodaysDevotional() async {
     try {
-      final today = DateTime.now();
+      final today = await ServerTimeService.getSaoPauloDate(_supabase);
+      if (today == null) return null;
       final response = await _supabase
           .from('devotionals')
           .select()
-          .eq('published_date', today.toIso8601String().split('T')[0])
-          .single();
+          .eq('published_date', today)
+          .maybeSingle();
 
+      if (response == null) return null;
       return Devotional.fromJson(response);
     } catch (e, stack) {
       LogService.error('Erro ao buscar devocional do dia', e, stack, 'DevotionalService');
@@ -34,9 +38,17 @@ class DevotionalService {
           .from('devotionals')
           .select()
           .eq('id', id)
-          .single();
+          .maybeSingle();
 
-      return Devotional.fromJson(response);
+      if (response == null) return null;
+      final devotional = Devotional.fromJson(response);
+      final accessService = DevotionalAccessService(_supabase);
+      final canAccess = await accessService.canAccessDevotional(
+        devotionalId: devotional.id,
+        publishedDate: devotional.publishedDate,
+      );
+      if (!canAccess) return null;
+      return devotional;
     } catch (e, stack) {
       LogService.error('Erro ao buscar devocional por ID', e, stack, 'DevotionalService');
       return null;
@@ -65,11 +77,21 @@ class DevotionalService {
       final user = _supabase.auth.currentUser;
       if (user == null) return false;
 
+      final today = await ServerTimeService.getSaoPauloDate(_supabase);
+      if (today == null) return false;
+
+      final devotionalToday = await _supabase
+          .from('devotionals')
+          .select('id')
+          .eq('id', devotionalId)
+          .eq('published_date', today)
+          .maybeSingle();
+      if (devotionalToday == null) return false;
+
       // Verificar se já foi lido hoje
-      final todayUtc = DateTime.now().toUtc().toIso8601String().split('T')[0];
-      final alreadyRead = await _hasReadToday(devotionalId, user.id, todayUtc);
+      final alreadyRead = await _hasReadToday(devotionalId, user.id, today);
       final firstReadOfDay =
-          !(await _hasAnyDevotionalReadToday(user.id, todayUtc));
+          !(await _hasAnyDevotionalReadToday(user.id, today));
 
       if (alreadyRead) {
         LogService.info('Devocional já lido hoje: $devotionalId', 'DevotionalService');
@@ -83,7 +105,7 @@ class DevotionalService {
           'devotional_id': devotionalId,
           'user_profile_id': user.id,
           'read_at': readAt,
-          'read_date': todayUtc,
+          'read_date': today,
         });
         
         // Adicionar em reading_history para o calendário
@@ -91,7 +113,7 @@ class DevotionalService {
           'user_id': user.id,
           'devotional_id': devotionalId,
           'read_at': readAt,
-          'read_date': DateTime.now().toIso8601String().split('T')[0],
+          'read_date': today,
         });
       } on PostgrestException catch (e) {
         // Tratamento de unicidade (unique_violation)
@@ -144,6 +166,16 @@ class DevotionalService {
     } catch (_) {
       return false;
     }
+  }
+
+  Future<bool> hasReadToday(int devotionalId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return false;
+
+    final today = await ServerTimeService.getSaoPauloDate(_supabase);
+    if (today == null) return false;
+
+    return _hasReadToday(devotionalId, user.id, today);
   }
 
   /// Verifica se o devocional já foi lido hoje

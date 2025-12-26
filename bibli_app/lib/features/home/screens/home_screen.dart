@@ -6,6 +6,7 @@ import 'package:bibli_app/features/home/models/user_profile.dart';
 import 'package:bibli_app/features/home/models/devotional.dart';
 import 'package:bibli_app/features/home/models/reading_streak.dart';
 import 'package:bibli_app/features/devotionals/screens/devotional_screen.dart';
+import 'package:bibli_app/features/devotionals/services/devotional_access_service.dart';
 import 'package:bibli_app/features/quotes/screens/quote_screen.dart';
 import 'package:bibli_app/features/gamification/services/gamification_service.dart';
 import 'package:bibli_app/features/gamification/models/user_stats.dart';
@@ -767,76 +768,130 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 20),
 
           // Devocional
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.menu_book, color: Colors.white, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Devocional - $dateLabel',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-              if (displayDevotional != null)
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            DevotionalScreen(devotionalId: displayDevotional.id),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF005954),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Ler'),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            displayDevotional?.title ?? 'Nenhum devocional disponível para esta data',
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-          ),
-          const SizedBox(height: 20),
+          FutureBuilder<bool>(
+            future: displayDevotional != null
+                ? _canAccessDevotional(displayDevotional!)
+                : Future.value(false),
+            builder: (context, snapshot) {
+              final canAccess = snapshot.data ?? false;
+              final isChecking =
+                  snapshot.connectionState == ConnectionState.waiting;
+              final hasDevotional = displayDevotional != null;
 
-          // Versículo do dia
-          const Row(
-            children: [
-              Icon(Icons.menu_book, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Versículo do Dia',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            displayDevotional?.verse1 ?? 'O Senhor é bom para com aqueles cuja esperança está nele, para com aqueles que o buscam;',
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            displayDevotional?.verse2 ?? 'Lamentações 3:25',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+              final titleText = hasDevotional
+                  ? (canAccess
+                      ? displayDevotional!.title
+                      : 'Devocional bloqueado')
+                  : 'Nenhum devocional disponível para esta data';
+              final verseText = (hasDevotional && canAccess)
+                  ? (displayDevotional!.verse1 ??
+                      'O Senhor é bom para com aqueles cuja esperança está nele, para com aqueles que o buscam;')
+                  : 'Conclua a leitura do dia anterior para desbloquear.';
+              final verseRef = (hasDevotional && canAccess)
+                  ? (displayDevotional!.verse2 ?? 'Lamentações 3:25')
+                  : '';
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.menu_book,
+                              color: Colors.white, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Devocional - $dateLabel',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (hasDevotional)
+                        ElevatedButton(
+                          onPressed: (!isChecking && canAccess)
+                              ? () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => DevotionalScreen(
+                                        devotionalId: displayDevotional!.id,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: canAccess
+                                ? Colors.white
+                                : Colors.grey.shade400,
+                            foregroundColor: canAccess
+                                ? const Color(0xFF005954)
+                                : Colors.grey.shade600,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                canAccess ? Icons.menu_book : Icons.lock,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isChecking
+                                    ? 'Verificando'
+                                    : (canAccess ? 'Ler' : 'Bloqueado'),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    titleText,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Versículo do dia
+                  const Row(
+                    children: [
+                      Icon(Icons.menu_book, color: Colors.white, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Versículo do Dia',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    verseText,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                  if (verseRef.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      verseRef,
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -1008,6 +1063,15 @@ class _HomeScreenState extends State<HomeScreen> {
       'Dezembro',
     ];
     return months[month - 1];
+  }
+
+  Future<bool> _canAccessDevotional(Devotional devotional) async {
+    final accessService =
+        DevotionalAccessService(Supabase.instance.client);
+    return accessService.canAccessDevotional(
+      devotionalId: devotional.id,
+      publishedDate: devotional.publishedDate,
+    );
   }
 
   int _weekProgress() {
