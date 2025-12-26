@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/reading_plans/services/reading_plans_service.dart';
 import 'package:bibli_app/features/bookmarks/services/bookmarks_service.dart';
+import 'package:bibli_app/core/services/log_service.dart';
 
 import '../services/bible_service.dart';
 
@@ -90,11 +91,22 @@ class _VersesScreenState extends State<VersesScreen> {
 
     final verses = await versesFuture;
     final verseIds = await verseIdsFuture;
-    await _loadBookmarksForChapter(verseIds.values.toList());
+
+    // Fallback: se não encontramos verse_id no Supabase, usa pk/id da API como verseId.
+    final resolvedIds = Map<int, int>.from(verseIds);
+    for (final v in verses) {
+      final verseNumber = (v['verse'] as num?)?.toInt();
+      final pk = (v['pk'] ?? v['api_id']) as num?;
+      if (verseNumber != null && pk != null && resolvedIds[verseNumber] == null) {
+        resolvedIds[verseNumber] = pk.toInt();
+      }
+    }
+
+    await _loadBookmarksForChapter(resolvedIds.values.toList());
     if (!mounted) return;
     setState(() {
       _verses = verses;
-      _verseIdsByNumber = verseIds;
+      _verseIdsByNumber = resolvedIds;
       _loading = false;
     });
 
@@ -106,13 +118,47 @@ class _VersesScreenState extends State<VersesScreen> {
 
   Future<Map<int, int>> _loadVerseIds(int chapter) async {
     try {
-      final rows = await Supabase.instance.client
+      var rows = await Supabase.instance.client
           .from('verses')
           .select('id, verse_number')
           .eq('book_id', widget.bookId)
           .eq('chapter_number', chapter);
+      LogService.debug(
+        'VersesScreen: carregados ${rows.length} verse_ids para book=${widget.bookId} cap=$chapter',
+        'VersesScreen',
+      );
+
+      // Fallback: tenta pelo nome do livro se não retornou nada (caso book_id não bata)
+      dynamic fallbackRows = rows;
+      if ((rows as List).isEmpty) {
+        final resolvedBookId = await _resolveBookIdByName();
+        if (resolvedBookId != null && resolvedBookId != widget.bookId) {
+          rows = await Supabase.instance.client
+              .from('verses')
+              .select('id, verse_number')
+              .eq('book_id', resolvedBookId)
+              .eq('chapter_number', chapter);
+          if ((rows as List).isNotEmpty) {
+            LogService.warning(
+              'VersesScreen: usou book_id resolvido=$resolvedBookId, retornou ${(rows as List).length} itens',
+              'VersesScreen',
+            );
+            fallbackRows = rows;
+          }
+        }
+      }
+      if ((fallbackRows as List).isEmpty) {
+        LogService.error(
+          'VersesScreen: nenhum verse_id encontrado para book=${widget.bookId} cap=$chapter',
+          null,
+          null,
+          'VersesScreen',
+        );
+        return {};
+      }
+
       final map = <int, int>{};
-      for (final row in rows as List<dynamic>) {
+      for (final row in fallbackRows) {
         final verseNumber = (row['verse_number'] as num?)?.toInt();
         final verseId = (row['id'] as num?)?.toInt();
         if (verseNumber != null && verseId != null) {
@@ -220,7 +266,12 @@ class _VersesScreenState extends State<VersesScreen> {
     required int verseNumber,
     required String text,
   }) async {
-    final verseId = _verseIdsByNumber[verseNumber];
+    int? verseId = _verseIdsByNumber[verseNumber];
+    verseId ??= await _resolveVerseId(verseNumber);
+    LogService.debug(
+      'Abrindo modal verso=$verseNumber id=$verseId highlight=${verseId != null ? _highlightColors[verseId] : null}',
+      'VersesScreen',
+    );
     final currentColor = verseId != null ? _highlightColors[verseId] : null;
     await showModalBottomSheet<void>(
       context: context,
@@ -299,23 +350,27 @@ class _VersesScreenState extends State<VersesScreen> {
                                 foregroundColor: const Color(0xFF2F5E5B),
                               ),
                               onPressed: () async {
+                                final messenger = ScaffoldMessenger.of(context);
                                 Navigator.pop(context);
                                 final ok = await _bookmarksService.toggleHighlight(
-                                  verseId: verseId,
+                                  verseId: verseId!,
                                   colorHex: '#FFF9C4',
+                                  bookName: widget.bookName,
+                                  chapter: _chapter,
+                                  verseNumber: verseNumber,
                                 );
                                 await _loadBookmarksForChapter(
                                   _verseIdsByNumber.values.toList(),
                                 );
                                 if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                setState(() {});
+                                messenger.showSnackBar(
                                   SnackBar(
                                     content: Text(
                                       ok ? 'Favorito atualizado' : 'Não foi possível salvar',
                                     ),
                                   ),
                                 );
-                                setState(() {});
                               },
                               icon: const Icon(Icons.bookmark_add_outlined, size: 18),
                               label: const Text(
@@ -333,23 +388,27 @@ class _VersesScreenState extends State<VersesScreen> {
                             final selected = currentColor == hex;
                             return GestureDetector(
                               onTap: () async {
+                                final messenger = ScaffoldMessenger.of(context);
                                 Navigator.pop(context);
                                 final ok = await _bookmarksService.setHighlight(
-                                  verseId: verseId,
+                                  verseId: verseId!,
                                   colorHex: hex,
+                                  bookName: widget.bookName,
+                                  chapter: _chapter,
+                                  verseNumber: verseNumber,
                                 );
                                 await _loadBookmarksForChapter(
                                   _verseIdsByNumber.values.toList(),
                                 );
                                 if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                setState(() {});
+                                messenger.showSnackBar(
                                   SnackBar(
                                     content: Text(
                                       ok ? 'Verso destacado' : 'Não foi possível salvar',
                                     ),
                                   ),
                                 );
-                                setState(() {});
                               },
                               child: Container(
                                 width: 38,
@@ -376,20 +435,21 @@ class _VersesScreenState extends State<VersesScreen> {
                           const SizedBox(height: 12),
                           TextButton.icon(
                             onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
                               Navigator.pop(context);
-                              final ok = await _bookmarksService.removeHighlight(verseId);
+                              final ok = await _bookmarksService.removeHighlight(verseId!);
                               await _loadBookmarksForChapter(
                                 _verseIdsByNumber.values.toList(),
                               );
                               if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              setState(() {});  // Força rebuild imediato
+                              messenger.showSnackBar(
                                 SnackBar(
                                   content: Text(
                                     ok ? 'Destaque removido' : 'Não foi possível remover',
                                   ),
                                 ),
                               );
-                              setState(() {});
                             },
                             icon: const Icon(Icons.delete_outline, color: Color(0xFF2F5E5B)),
                             label: const Text(
@@ -426,6 +486,7 @@ class _VersesScreenState extends State<VersesScreen> {
                         style: TextStyle(fontFamily: 'Poppins', color: Color(0xFF6B7480)),
                       ),
                       onTap: () async {
+                        final messenger = ScaffoldMessenger.of(context);
                         Navigator.pop(context);
                         final note = await _promptNote();
                         if (note == null || note.trim().isEmpty) return;
@@ -437,14 +498,14 @@ class _VersesScreenState extends State<VersesScreen> {
                           _verseIdsByNumber.values.toList(),
                         );
                         if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        setState(() {});  // Força rebuild imediato
+                        messenger.showSnackBar(
                           SnackBar(
                             content: Text(
                               ok ? 'Nota salva' : 'Não foi possível salvar a nota',
                             ),
                           ),
                         );
-                        setState(() {});
                       },
                     ),
                   ),
@@ -507,6 +568,84 @@ class _VersesScreenState extends State<VersesScreen> {
         );
       },
     );
+  }
+
+  /// Tenta resolver verse_id no Supabase quando não está no cache do capítulo.
+  Future<int?> _resolveVerseId(int verseNumber) async {
+    try {
+      final row = await Supabase.instance.client
+          .from('verses')
+          .select('id')
+          .eq('book_id', widget.bookId)
+          .eq('chapter_number', _chapter)
+          .eq('verse_number', verseNumber)
+          .maybeSingle();
+      final id = (row?['id'] as num?)?.toInt();
+      if (id != null) {
+        _verseIdsByNumber[verseNumber] = id;
+        LogService.debug('VersesScreen: resolvido verse_id=$id para verso=$verseNumber', 'VersesScreen');
+      } else {
+        // Fallback: tenta apenas por capítulo/verso e nome
+        final resolvedBookId = await _resolveBookIdByName();
+        if (resolvedBookId != null && resolvedBookId != widget.bookId) {
+          final alt = await Supabase.instance.client
+              .from('verses')
+              .select('id')
+              .eq('book_id', resolvedBookId)
+              .eq('chapter_number', _chapter)
+              .eq('verse_number', verseNumber)
+              .maybeSingle();
+          final aid = (alt?['id'] as num?)?.toInt();
+          if (aid != null) {
+            _verseIdsByNumber[verseNumber] = aid;
+            LogService.warning(
+              'VersesScreen: fallback book_id=$resolvedBookId resolveu verse_id=$aid para verso=$verseNumber',
+              'VersesScreen',
+            );
+            return aid;
+          }
+        }
+        final fallback = await Supabase.instance.client
+            .from('verses')
+            .select('id')
+            .eq('chapter_number', _chapter)
+            .eq('verse_number', verseNumber)
+            .ilike('book_name', widget.bookName)
+            .maybeSingle();
+        final fid = (fallback?['id'] as num?)?.toInt();
+        if (fid != null) {
+          _verseIdsByNumber[verseNumber] = fid;
+          LogService.warning(
+            'VersesScreen: fallback resolveu verse_id=$fid para verso=$verseNumber via nome',
+            'VersesScreen',
+          );
+          return fid;
+        }
+        LogService.warning('VersesScreen: verse_id nulo para verso=$verseNumber', 'VersesScreen');
+      }
+      return id;
+    } catch (_) {
+      LogService.error('VersesScreen: falha ao resolver verse_id para verso=$verseNumber', null, null, 'VersesScreen');
+      return null;
+    }
+  }
+
+  /// Resolve book_id pelo nome para cenários em que o ID vindo da API não bate com Supabase.
+  Future<int?> _resolveBookIdByName() async {
+    try {
+      final row = await Supabase.instance.client
+          .from('books')
+          .select('id')
+          .ilike('name', widget.bookName)
+          .maybeSingle();
+      final id = (row?['id'] as num?)?.toInt();
+      if (id != null) {
+        LogService.debug('VersesScreen: book_id resolvido por nome=$id (${widget.bookName})', 'VersesScreen');
+      }
+      return id;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<String?> _promptNote() async {
@@ -693,13 +832,25 @@ class _VersesScreenState extends State<VersesScreen> {
                               ),
                               const SizedBox(width: 10),
                               Expanded(
-                                child: Text(
-                                  text,
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontSize: 13.5 * _fontScale,
-                                    height: 1.6,
-                                    color: const Color(0xFF9AA3AF),
+                                child: Container(
+                                  padding: isHighlighted
+                                      ? const EdgeInsets.symmetric(horizontal: 4, vertical: 2)
+                                      : null,
+                                  decoration: isHighlighted
+                                      ? BoxDecoration(
+                                          color: (_colorFromHex(colorHex) ?? Colors.amber.shade100)
+                                              .withOpacity(0.3),
+                                          borderRadius: BorderRadius.circular(4),
+                                        )
+                                      : null,
+                                  child: Text(
+                                    text,
+                                    style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 13.5 * _fontScale,
+                                      height: 1.6,
+                                      color: const Color(0xFF9AA3AF),
+                                    ),
                                   ),
                                 ),
                               ),

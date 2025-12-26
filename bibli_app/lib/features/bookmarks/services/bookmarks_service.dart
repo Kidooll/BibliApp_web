@@ -12,8 +12,10 @@ class BookmarksService {
   Future<bool> toggleHighlight({
     required int verseId,
     String? colorHex,
+    String? bookName,
+    int? chapter,
+    int? verseNumber,
   }) async {
-    // Usa um amarelo claro padrão se não vier cor específica.
     final effectiveColor = colorHex?.trim().isNotEmpty == true ? colorHex : '#FFF9C4';
     try {
       LogService.debug(
@@ -47,15 +49,15 @@ class BookmarksService {
       }
 
       LogService.debug('Inserindo highlight novo', 'BookmarksService');
-      await _supabase.from('bookmarks').upsert(
-        {
-          'bookmark_type': 'highlight',
-          'verse_id': verseId,
-          'highlight_color': effectiveColor,
-          'user_profile_id': user.id,
-        },
-        onConflict: 'user_profile_id,bookmark_type,verse_id',
-      );
+      await _supabase.from('bookmarks').insert({
+        'bookmark_type': 'highlight',
+        'verse_id': verseId,
+        'highlight_color': effectiveColor,
+        'user_profile_id': user.id,
+        if (bookName != null) 'book_name': bookName,
+        if (chapter != null) 'chapter_number': chapter,
+        if (verseNumber != null) 'verse_number': verseNumber,
+      });
       try {
         await WeeklyChallengesService(_supabase).incrementByType('favorite');
       } catch (e, stack) {
@@ -68,10 +70,12 @@ class BookmarksService {
     }
   }
 
-  /// Define explicitamente um highlight (sempre insere/atualiza).
   Future<bool> setHighlight({
     required int verseId,
     required String colorHex,
+    String? bookName,
+    int? chapter,
+    int? verseNumber,
   }) async {
     final effectiveColor = colorHex.trim().isNotEmpty ? colorHex : '#FFF9C4';
     try {
@@ -80,15 +84,30 @@ class BookmarksService {
         LogService.warning('setHighlight sem usuário logado', 'BookmarksService');
         return false;
       }
-      await _supabase.from('bookmarks').upsert(
-        {
+      
+      final existing = await _supabase
+          .from('bookmarks')
+          .select('id')
+          .eq('user_profile_id', user.id)
+          .eq('bookmark_type', 'highlight')
+          .eq('verse_id', verseId)
+          .maybeSingle();
+      if (existing != null) {
+        await _supabase
+            .from('bookmarks')
+            .update({'highlight_color': effectiveColor})
+            .eq('id', existing['id'] as int);
+      } else {
+        await _supabase.from('bookmarks').insert({
           'bookmark_type': 'highlight',
           'verse_id': verseId,
           'highlight_color': effectiveColor,
           'user_profile_id': user.id,
-        },
-        onConflict: 'user_profile_id,bookmark_type,verse_id',
-      );
+          if (bookName != null) 'book_name': bookName,
+          if (chapter != null) 'chapter_number': chapter,
+          if (verseNumber != null) 'verse_number': verseNumber,
+        });
+      }
       try {
         await WeeklyChallengesService(_supabase).incrementByType('favorite');
       } catch (e, stack) {
@@ -126,6 +145,7 @@ class BookmarksService {
   Future<bool> upsertNote({
     int? verseId,
     required String noteText,
+    String? highlightColor,
   }) async {
     if (noteText.trim().isEmpty) return false;
     try {
@@ -139,14 +159,19 @@ class BookmarksService {
         return false;
       }
 
+      final data = <String, dynamic>{
+        'bookmark_type': 'note',
+        'note_text': noteText.trim(),
+        'user_profile_id': user.id,
+        if (verseId != null) 'verse_id': verseId,
+        if (highlightColor != null && highlightColor.trim().isNotEmpty)
+          'highlight_color': highlightColor.trim(),
+      };
+
       // Se não foi informado verseId, apenas insere nota solta (sem vínculo).
       if (verseId == null) {
         LogService.debug('Inserindo nota sem verse_id', 'BookmarksService');
-        await _supabase.from('bookmarks').insert({
-          'bookmark_type': 'note',
-          'note_text': noteText.trim(),
-          'user_profile_id': user.id,
-        });
+        await _supabase.from('bookmarks').insert(data);
         return true;
       }
 
@@ -160,20 +185,10 @@ class BookmarksService {
 
       if (existing != null) {
         LogService.debug('Nota existente encontrada id=${existing['id']}', 'BookmarksService');
-        await _supabase.from('bookmarks').update({
-          'note_text': noteText.trim(),
-        }).eq('id', existing['id'] as int);
+        await _supabase.from('bookmarks').update(data).eq('id', existing['id'] as int);
       } else {
         LogService.debug('Inserindo nota nova', 'BookmarksService');
-        await _supabase.from('bookmarks').upsert(
-          {
-            'bookmark_type': 'note',
-            'verse_id': verseId,
-            'note_text': noteText.trim(),
-            'user_profile_id': user.id,
-          },
-          onConflict: 'user_profile_id,bookmark_type,verse_id',
-        );
+        await _supabase.from('bookmarks').insert(data);
       }
       try {
         await WeeklyChallengesService(_supabase).incrementByType('note');
@@ -183,6 +198,39 @@ class BookmarksService {
       return true;
     } catch (e, stack) {
       LogService.error('Erro ao salvar nota', e, stack, 'BookmarksService');
+      return false;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> listNotes() async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) return [];
+      final res = await _supabase
+          .from('bookmarks')
+          .select()
+          .eq('user_profile_id', user.id)
+          .eq('bookmark_type', 'note')
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(res);
+    } catch (e, stack) {
+      LogService.error('Erro ao listar notas', e, stack, 'BookmarksService');
+      return [];
+    }
+  }
+
+  Future<bool> deleteNote(int noteId) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) return false;
+      await _supabase
+          .from('bookmarks')
+          .delete()
+          .eq('id', noteId)
+          .eq('user_profile_id', user.id);
+      return true;
+    } catch (e, stack) {
+      LogService.error('Erro ao deletar nota', e, stack, 'BookmarksService');
       return false;
     }
   }
@@ -234,11 +282,7 @@ class BookmarksService {
       PostgrestFilterBuilder<List<Map<String, dynamic>>> filter = _supabase
           .from('bookmarks')
           .select(
-            '''
-            id, bookmark_type, verse_id, devotional_id, note_text, highlight_color, created_at,
-            verses(id, verse_number, chapter_number, book_id, books(name)),
-            devotionals(id, title)
-            ''',
+            'id, bookmark_type, verse_id, devotional_id, note_text, highlight_color, created_at, book_name, chapter_number, verse_number',
           )
           .eq('user_profile_id', user.id);
 
@@ -257,7 +301,8 @@ class BookmarksService {
       }
 
       final res = await query;
-      return List<Map<String, dynamic>>.from(res);
+      final bookmarks = List<Map<String, dynamic>>.from(res);
+      return bookmarks;
     } catch (e, stack) {
       LogService.error('Erro ao listar bookmarks', e, stack, 'BookmarksService');
       return [];

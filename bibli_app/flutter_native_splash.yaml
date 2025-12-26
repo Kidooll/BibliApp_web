@@ -9,5 +9,24 @@ flutter_native_splash:
     icon_background_color: "#005954"
     image_dark: assets/images/logo.png
     icon_background_color_dark: "#005954"
+
+  android_13:
+    image: assets/images/logo.png
+    icon_background_color: "#005954"
+    image_dark: assets/images/logo.png
+    icon_background_color_dark: "#005954"
+  
+  android_14:
+    image: assets/images/logo.png
+    icon_background_color: "#005954"
+    image_dark: assets/images/logo.png
+    icon_background_color_dark: "#005954"
+
+  android_15:
+    image: assets/images/logo.png
+    icon_background_color: "#005954"
+    image_dark: assets/images/logo.png
+    icon_background_color_dark: "#005954"
+  
   
   web: false

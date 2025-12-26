@@ -57,7 +57,7 @@ class WeeklyChallengesService {
         'challenge_id': challengeId,
         'current_progress': 0,
         'is_completed': false,
-      }, onConflict: 'user_profile_id,challenge_id');
+      });
     } catch (_) {}
   }
 

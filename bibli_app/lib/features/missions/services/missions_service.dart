@@ -205,6 +205,7 @@ class MissionsService {
   }
 
   String _todayDate() {
-    return DateTime.now().toUtc().toIso8601String().split('T')[0];
+    // Usar horário local ao invés de UTC
+    return DateTime.now().toIso8601String().split('T')[0];
   }
 }

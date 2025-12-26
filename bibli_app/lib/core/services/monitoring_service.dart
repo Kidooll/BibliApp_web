@@ -45,11 +45,12 @@ class MonitoringService {
   // Analytics Events (Supabase)
   static Future<void> logEvent(String name, Map<String, Object>? parameters) async {
     if (!_initialized) return;
-    
+
     try {
       final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return; // evita 401 em web antes do login
       await Supabase.instance.client.from('app_events').insert({
-        'user_id': user?.id,
+        'user_id': user.id,
         'event_name': name,
         'event_data': parameters ?? {},
         'created_at': DateTime.now().toIso8601String(),

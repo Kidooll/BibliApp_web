@@ -8,7 +8,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:bibli_app/core/services/cache_service.dart';
 import 'package:bibli_app/core/services/monitoring_service.dart';
 import 'package:bibli_app/core/services/notification_service.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:flutter/foundation.dart';
 
 
@@ -36,58 +35,44 @@ class _AppLifecycleObserver extends WidgetsBindingObserver {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  
+  try {
+    await dotenv.load(fileName: ".env");
+    
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
 
-  await SentryFlutter.init(
-    (options) {
-      final dsn = AppConfig.sentryDsn;
-      if (dsn.isNotEmpty) {
-        options.dsn = dsn;
-      }
-      options.environment = kDebugMode ? 'development' : 'production';
-      options.tracesSampleRate = kDebugMode ? 1.0 : 0.1;
-    },
-    appRunner: () => runZonedGuarded(
-      () async {
-        // Configurar orientação
-        await SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-        ]);
+    AppConfig.ensureSupabaseConfig();
 
-        AppConfig.ensureSupabaseConfig();
+    await Supabase.initialize(
+      url: AppConfig.supabaseUrl,
+      anonKey: AppConfig.supabaseAnonKey,
+    );
 
-        // Configurar error handling
-        FlutterError.onError = (errorDetails) {
-          MonitoringService.recordError(
-            errorDetails.exception,
-            errorDetails.stack,
-            context: 'flutter_error',
-          );
-        };
-        PlatformDispatcher.instance.onError = (error, stack) {
-          MonitoringService.recordError(error, stack, context: 'platform_error');
-          return true;
-        };
-
-        await Supabase.initialize(
-          url: AppConfig.supabaseUrl,
-          anonKey: AppConfig.supabaseAnonKey,
-        );
-
-        // Inicializar serviços
+    // Inicializar serviços em background
+    Future.microtask(() async {
+      try {
         await MonitoringService.initialize();
         CacheService.autoCleanup();
         await MonitoringService.logAppLaunch();
         await NotificationService.initAndScheduleDailyReading();
-        
-        // Configurar lifecycle callbacks
         WidgetsBinding.instance.addObserver(_AppLifecycleObserver());
+      } catch (e) {
+        debugPrint('Erro ao inicializar serviços: $e');
+      }
+    });
 
-        runApp(const BibliApp());
-      },
-      (error, stack) {
-        MonitoringService.recordError(error, stack, context: 'main_zone');
-      },
-    ),
-  );
+    runApp(const BibliApp());
+  } catch (e, stack) {
+    debugPrint('Erro fatal: $e');
+    debugPrint('Stack: $stack');
+    runApp(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Text('Erro ao inicializar app: $e'),
+        ),
+      ),
+    ));
+  }
 }

@@ -113,7 +113,13 @@ class BibleService {
     final List data = json.decode(res.body) as List;
     return data.map((e) {
       final m = Map<String, dynamic>.from(e as Map);
-      return {'verse': m['verse'], 'text': _stripHtml(m['text'] ?? '')};
+      return {
+        'verse': m['verse'],
+        'text': _stripHtml(m['text'] ?? ''),
+        // pk é o ID do verso na API; usamos para fallback quando não há verse_id no Supabase.
+        if (m.containsKey('pk')) 'pk': m['pk'],
+        if (m.containsKey('id')) 'api_id': m['id'],
+      };
     }).toList();
   }
 

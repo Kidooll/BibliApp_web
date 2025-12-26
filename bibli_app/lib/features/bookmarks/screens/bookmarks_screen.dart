@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/bookmarks/services/bookmarks_service.dart';
+import 'package:bibli_app/features/bible/services/bible_service.dart';
+import 'package:bibli_app/features/bible/screens/verses_screen.dart';
 import 'package:bibli_app/core/constants/app_constants.dart';
+import 'package:bibli_app/core/widgets/custom_snackbar.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -144,75 +147,135 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     final createdAt = item['created_at']?.toString().split('T').first ?? '';
     final note = item['note_text']?.toString();
     final colorHex = item['highlight_color']?.toString();
-    final verse = item['verses'] as Map<String, dynamic>?;
-    final devo = item['devotionals'] as Map<String, dynamic>?;
+    final verseId = item['verse_id'];
+    final devoId = item['devotional_id'];
+    final bookName = item['book_name']?.toString();
+    final chapter = item['chapter_number'];
+    final verseNum = item['verse_number'];
+    final verseText = item['verse_text']?.toString();
 
     String title;
     String subtitle = '';
+    IconData icon;
+    Color cardColor;
+    
     if (type == 'devotional') {
-      title = devo?['title']?.toString() ?? 'Devocional #${item['devotional_id']}';
+      title = 'Devocional #$devoId';
       subtitle = 'Favorito';
+      icon = Icons.auto_stories;
+      cardColor = const Color(0xFFF2E8FF);
     } else if (type == 'note') {
-      final ref = _verseRef(verse) ?? 'Verso ${item['verse_id']}';
-      title = 'Nota • $ref';
+      if (bookName != null && chapter != null && verseNum != null) {
+        title = '$bookName $chapter:$verseNum';
+      } else {
+        title = verseId != null ? 'Verso #$verseId' : 'Nota';
+      }
       subtitle = note ?? '';
+      icon = Icons.note;
+      cardColor = const Color(0xFFEAF2FF);
     } else {
-      final ref = _verseRef(verse) ?? 'Verso ${item['verse_id']}';
-      title = ref;
-      subtitle = colorHex != null ? 'Destaque $colorHex' : 'Favorito';
+      if (bookName != null && chapter != null && verseNum != null) {
+        title = '$bookName $chapter:$verseNum';
+      } else {
+        title = 'Verso #$verseId';
+      }
+      subtitle = verseText ?? 'Destaque';
+      icon = Icons.bookmark;
+      cardColor = colorHex != null ? _parseColor(colorHex).withOpacity(0.15) : const Color(0xFFFFF9E6);
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-          ),
+    return GestureDetector(
+      onTap: type == 'highlight' && bookName != null && chapter != null
+          ? () => _navigateToVerse(bookName, chapter)
+          : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
-        subtitle: subtitle.isNotEmpty
-            ? Text(
-                subtitle,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  color: Color(0xFF6B7480),
-                ),
-              )
-            : null,
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _typeChip(type, colorHex),
-            const SizedBox(height: 6),
-            if (createdAt.isNotEmpty)
-              Text(
-                createdAt,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 11,
-                  color: Color(0xFF9AA3AF),
-                ),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(12),
               ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF2F5E5B),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1F3F3D),
+                    ),
+                  ),
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 11,
+                        color: Color(0xFF6B7480),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _typeChip(type, colorHex),
+                      const Spacer(),
+                      if (createdAt.isNotEmpty)
+                        Text(
+                          createdAt,
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 11,
+                            color: Color(0xFF9AA3AF),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
             IconButton(
               icon: const Icon(Icons.delete_outline, color: Color(0xFFE15B5B)),
               onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
                 final ok = await _service.deleteBookmark(item['id'] as int);
+                if (!mounted) return;
                 if (ok) {
-                  _load();
+                  await _load();
+                  messenger.showSnackBar(CustomSnackBar.success('Removido'));
                 } else {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Não foi possível remover'),
-                    ),
-                  );
+                  messenger.showSnackBar(CustomSnackBar.error('Não foi possível remover'));
                 }
               },
             ),
@@ -224,26 +287,21 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
 
   Widget _typeChip(String type, String? colorHex) {
     String label;
-    Color bg = const Color(0xFFE8EDF2);
-    Color fg = const Color(0xFF425466);
+    Color bg;
+    Color fg = const Color(0xFF2F5E5B);
 
     switch (type) {
       case 'note':
         label = 'Nota';
         bg = const Color(0xFFEAF2FF);
-        fg = const Color(0xFF2F5E5B);
         break;
       case 'devotional':
         label = 'Devocional';
         bg = const Color(0xFFF2E8FF);
-        fg = const Color(0xFF5E2F5C);
         break;
       default:
         label = 'Verso';
-        if (colorHex != null) {
-          bg = _parseColor(colorHex).withOpacity(0.28);
-          fg = const Color(0xFF2F5E5B);
-        }
+        bg = colorHex != null ? _parseColor(colorHex).withOpacity(0.28) : const Color(0xFFFFF9E6);
     }
 
     return Container(
@@ -275,14 +333,43 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     return const Color(0xFF2F5E5B);
   }
 
-  String? _verseRef(Map<String, dynamic>? verse) {
-    if (verse == null) return null;
-    final book = verse['books'] as Map<String, dynamic>?;
-    final bookName = book?['name']?.toString();
-    final chapter = (verse['chapter_number'] as num?)?.toInt();
-    final number = (verse['verse_number'] as num?)?.toInt();
-    if (bookName == null || chapter == null || number == null) return null;
-    return '$bookName $chapter:$number';
+  Future<void> _navigateToVerse(String bookName, int chapter) async {
+    try {
+      final bibleService = BibleService();
+      final books = await bibleService.getBooks('NVIPT');
+      final book = books.cast<Map<String, dynamic>>().firstWhere(
+        (b) => b['name'].toString().toLowerCase() == bookName.toLowerCase(),
+        orElse: () => <String, dynamic>{},
+      );
+      
+      if (book.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          CustomSnackBar.error('Livro não encontrado'),
+        );
+        return;
+      }
+      
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VersesScreen(
+            service: bibleService,
+            translation: 'NVIPT',
+            bookId: book['id'] as int,
+            bookName: book['name'] as String,
+            initialChapter: chapter,
+            chapterCount: book['chapters'] as int,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        CustomSnackBar.error('Erro ao abrir versículo'),
+      );
+    }
   }
 
   Future<void> _addNoteManually() async {
@@ -346,7 +433,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     if (noteText.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Escreva o texto da nota.')),
+        CustomSnackBar.error('Escreva o texto da nota.'),
       );
       return;
     }
@@ -357,11 +444,11 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     if (ok) {
       await _load();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nota adicionada')),
+        CustomSnackBar.success('Nota adicionada', icon: Icons.note_add),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível salvar a nota')),
+        CustomSnackBar.error('Não foi possível salvar a nota'),
       );
     }
   }
