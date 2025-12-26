@@ -8,7 +8,7 @@
       "description": "Mergulhe em 2h30 da história de Jó, envolto em sons de chuva suave. Ideal para noites tranquilas, com propósito e paz.",
       "duration_seconds": 9000,
       "cover_asset": "assets/images/sleep_page/recomendacao.png",
-      "audio_url": "https://drive.google.com/file/d/1XW55id4UuI90pSLNq6cdQ2s7I2h_npsT/view?usp=sharing",
+      "audio_url": "https://bibliapp.s3.sa-east-1.amazonaws.com/bible_audio/jo_ao_som_de_chuva.mp3",
       "is_narration": true
     },
     {
@@ -18,7 +18,7 @@
       "description": "Durante 2h, deixe os conselhos fluírem sobre você com um som relaxante de chuva, um convite à paz e à sabedoria enquanto você adormece.",
       "duration_seconds": 7326,
       "cover_asset": "assets/images/sleep_page/image_1.png",
-      "audio_url": "https://drive.google.com/file/d/1fr5DH9Gv8wJ_NGLjq_R40ShdvgaiayAx/view?usp=sharing",
+      "audio_url": "https://bibliapp.s3.sa-east-1.amazonaws.com/bible_audio/proverbios_ao_som_de_chuva.mp3",
       "is_narration": false
     },
     {
@@ -28,7 +28,7 @@
       "description": "Uma seleção de parábolas narradas com ambiência suave para te conduzir a um sono profundo e natural.",
       "duration_seconds": 2400,
       "cover_asset": "assets/images/sleep_page/image_2.png",
-      "audio_url": "https://drive.google.com/file/d/1ttQsUDOmmA8St4gsCTvLQ58jOb_8I8js/view?usp=sharing",
+      "audio_url": "https://bibliapp.s3.sa-east-1.amazonaws.com/bible_audio/parabolas_de_Jesus_ao_som_de_chuva.mp3",
       "is_narration": false
     },
     {
@@ -58,7 +58,7 @@
       "description": "Reflexões profundas com uma ambientação relaxante para sua noite.",
       "duration_seconds": 2400,
       "cover_asset": "assets/images/sleep_music_page/image_1.png",
-      "audio_url": "https://drive.google.com/file/d/1Fyn_3r6wnfEqk8DIKnKeCVLhcOjvCvJs/view?usp=sharing",
+      "audio_url": "https://bibliapp.s3.sa-east-1.amazonaws.com/bible_audio/eclesiastes_ao_som_de_chuva.mp3",
       "is_narration": false
     },
     {
@@ -68,7 +68,7 @@
       "description": "Uma leitura calma e guiada para um descanso restaurador.",
       "duration_seconds": 5400,
       "cover_asset": "assets/images/sleep_music_page/image_2.png",
-      "audio_url": "https://drive.google.com/file/d/1E7QiLIRtFBUKdxFdn_7NV3mhZ3mVHzQ9/view?usp=drive_link",
+      "audio_url": "https://bibliapp.s3.sa-east-1.amazonaws.com/bible_audio/marcos_ao_som_de_chuva.mp3",
       "is_narration": false
     }
   ]

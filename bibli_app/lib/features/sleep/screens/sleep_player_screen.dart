@@ -1,15 +1,22 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../models/sleep_playback_state.dart';
 import '../models/sleep_track.dart';
+import '../services/sleep_catalog_repository.dart';
 import '../services/sleep_playback_service.dart';
 import '../services/sleep_prefs.dart';
 
 class SleepPlayerScreen extends StatefulWidget {
   final SleepTrack track;
+  final bool autoPlayEnabled;
 
-  const SleepPlayerScreen({super.key, required this.track});
+  const SleepPlayerScreen({
+    super.key,
+    required this.track,
+    this.autoPlayEnabled = true,
+  });
 
   @override
   State<SleepPlayerScreen> createState() => _SleepPlayerScreenState();
@@ -17,16 +24,23 @@ class SleepPlayerScreen extends StatefulWidget {
 
 class _SleepPlayerScreenState extends State<SleepPlayerScreen> {
   bool _isFavorite = false;
+  bool _didAutoAdvance = false;
+  bool _autoAdvanceInProgress = false;
+  late bool _autoPlayEnabled;
 
   @override
   void initState() {
     super.initState();
+    _autoPlayEnabled = widget.autoPlayEnabled;
+    _loadAutoPlayPreference();
     SleepPlaybackService.instance.start(widget.track, autoplay: true);
     _loadFavorite();
+    SleepPlaybackService.instance.state.addListener(_handlePlaybackState);
   }
 
   @override
   void dispose() {
+    SleepPlaybackService.instance.state.removeListener(_handlePlaybackState);
     final state = SleepPlaybackService.instance.state.value;
     if (state.trackId == widget.track.id) {
       SleepPlaybackService.instance.stop();
@@ -38,6 +52,59 @@ class _SleepPlayerScreenState extends State<SleepPlayerScreen> {
     final set = await SleepPrefs.getFavorites();
     if (!mounted) return;
     setState(() => _isFavorite = set.contains(widget.track.id));
+  }
+
+  Future<void> _loadAutoPlayPreference() async {
+    final enabled = await SleepPrefs.getAutoPlayEnabled();
+    if (!mounted) return;
+    setState(() => _autoPlayEnabled = enabled);
+  }
+
+  void _handlePlaybackState() {
+    if (!_autoPlayEnabled) return;
+    if (_didAutoAdvance || _autoAdvanceInProgress) return;
+    final state = SleepPlaybackService.instance.state.value;
+    if (state.trackId != widget.track.id) return;
+    if (state.duration == Duration.zero) return;
+    final completed =
+        !state.isPlaying && state.position >= state.duration;
+    if (!completed) return;
+    _didAutoAdvance = true;
+    _autoAdvanceInProgress = true;
+    Future.microtask(_playNextRandom);
+  }
+
+  Future<void> _playNextRandom() async {
+    try {
+      if (!_autoPlayEnabled) return;
+      final tracks = await SleepCatalogRepository.instance.getTracks();
+      final playable = tracks
+          .where(
+            (t) => (t.audioUrl ?? '').trim().isNotEmpty,
+          )
+          .toList();
+      if (playable.length <= 1) return;
+
+      final random = Random();
+      SleepTrack next = playable[random.nextInt(playable.length)];
+      while (next.id == widget.track.id && playable.length > 1) {
+        next = playable[random.nextInt(playable.length)];
+      }
+
+      if (!mounted) return;
+      SleepPlaybackService.instance.stop();
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SleepPlayerScreen(
+            track: next,
+            autoPlayEnabled: _autoPlayEnabled,
+          ),
+        ),
+      );
+    } finally {
+      _autoAdvanceInProgress = false;
+    }
   }
 
   @override
@@ -214,6 +281,32 @@ class _SleepPlayerScreenState extends State<SleepPlayerScreen> {
                                   icon: Icons.forward_10_rounded,
                                   onTap: () => SleepPlaybackService.instance
                                       .skip(const Duration(seconds: 15)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  'Autoplay',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 12,
+                                    color: Color(0xFFD3D7E3),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Switch.adaptive(
+                                  value: _autoPlayEnabled,
+                                  activeColor: const Color(0xFF8C97FF),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _autoPlayEnabled = value;
+                                    });
+                                    SleepPrefs.setAutoPlayEnabled(value);
+                                  },
                                 ),
                               ],
                             ),

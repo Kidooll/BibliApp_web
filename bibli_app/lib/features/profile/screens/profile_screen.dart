@@ -9,6 +9,7 @@ import 'package:bibli_app/features/gamification/models/user_stats.dart';
 import 'package:bibli_app/core/constants/app_constants.dart';
 import 'package:bibli_app/core/services/log_service.dart';
 import 'package:bibli_app/core/services/notification_service.dart';
+import 'package:bibli_app/features/sleep/services/sleep_prefs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -303,10 +304,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showSettingsDialog(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
+    final sleepAutoplay = await SleepPrefs.getAutoPlayEnabled();
     if (!context.mounted) return;
     bool soundEnabled = prefs.getBool('sound_enabled') ?? true;
     bool notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
-    
+    bool sleepAutoplayEnabled = sleepAutoplay;
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -346,6 +349,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   await prefs.setBool('sound_enabled', value);
                   setDialogState(() {
                     soundEnabled = value;
+                  });
+                },
+              ),
+              SwitchListTile(
+                title: const Text('🌙 Autoplay Dormir'),
+                subtitle: const Text('Tocar automaticamente o próximo áudio'),
+                value: sleepAutoplayEnabled,
+                activeThumbColor: AppColors.primary,
+                onChanged: (value) async {
+                  await SleepPrefs.setAutoPlayEnabled(value);
+                  setDialogState(() {
+                    sleepAutoplayEnabled = value;
                   });
                 },
               ),

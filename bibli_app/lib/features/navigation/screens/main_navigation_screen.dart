@@ -27,7 +27,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final overlayStyle = _currentIndex == 1
+    final isSleepTab = _currentIndex == 1;
+    const sleepBackground = Color(0xFF0B1A3C);
+    const sleepActive = Color(0xFF8C97FF);
+    const sleepInactive = Color(0xFFB8C0D8);
+
+    final overlayStyle = isSleepTab
         ? SystemUiOverlayStyle.light.copyWith(
             statusBarColor: Colors.transparent,
             statusBarIconBrightness: Brightness.light,
@@ -42,7 +47,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: overlayStyle,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: isSleepTab ? sleepBackground : Colors.white,
         body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           switchInCurve: Curves.easeInOut,
@@ -63,13 +68,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(26),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
+            boxShadow: isSleepTab
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(26),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
           ),
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
@@ -79,9 +86,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               });
             },
             type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.white,
-            selectedItemColor: AppColors.primary,
-            unselectedItemColor: Colors.grey,
+            backgroundColor: isSleepTab ? sleepBackground : Colors.white,
+            selectedItemColor: isSleepTab ? sleepActive : AppColors.primary,
+            unselectedItemColor: isSleepTab ? sleepInactive : Colors.grey,
             selectedLabelStyle: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 12,
@@ -90,28 +97,83 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               fontWeight: FontWeight.w400,
               fontSize: 12,
             ),
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.bedtime),
+            items: [
+              _buildNavItem(
+                index: 0,
+                icon: Icons.home,
+                label: 'Home',
+                isSleepTab: isSleepTab,
+                sleepActive: sleepActive,
+                sleepInactive: sleepInactive,
+              ),
+              _buildNavItem(
+                index: 1,
+                icon: Icons.bedtime,
                 label: 'Dormir',
+                isSleepTab: isSleepTab,
+                sleepActive: sleepActive,
+                sleepInactive: sleepInactive,
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.menu_book),
+              _buildNavItem(
+                index: 2,
+                icon: Icons.menu_book,
                 label: 'Bíblia',
+                isSleepTab: isSleepTab,
+                sleepActive: sleepActive,
+                sleepInactive: sleepInactive,
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.emoji_events),
+              _buildNavItem(
+                index: 3,
+                icon: Icons.emoji_events,
                 label: 'Missões',
+                isSleepTab: isSleepTab,
+                sleepActive: sleepActive,
+                sleepInactive: sleepInactive,
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.bookmark),
+              _buildNavItem(
+                index: 4,
+                icon: Icons.bookmark,
                 label: 'Favoritos',
+                isSleepTab: isSleepTab,
+                sleepActive: sleepActive,
+                sleepInactive: sleepInactive,
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  BottomNavigationBarItem _buildNavItem({
+    required int index,
+    required IconData icon,
+    required String label,
+    required bool isSleepTab,
+    required Color sleepActive,
+    required Color sleepInactive,
+  }) {
+    if (!isSleepTab) {
+      return BottomNavigationBarItem(icon: Icon(icon), label: label);
+    }
+
+    final isActive = _currentIndex == index;
+    return BottomNavigationBarItem(
+      icon: Icon(icon, color: sleepInactive),
+      activeIcon: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: isActive ? sleepActive : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          color: isActive ? Colors.white : sleepInactive,
+          size: 20,
+        ),
+      ),
+      label: label,
     );
   }
 }

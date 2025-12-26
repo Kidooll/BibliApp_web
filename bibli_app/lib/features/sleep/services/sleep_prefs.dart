@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SleepPrefs {
   static const _welcomeSeenKey = 'sleep_welcome_seen_v1';
   static const _favoritesKey = 'sleep_favorites_v1';
+  static const _autoPlayKey = 'sleep_autoplay_v1';
 
   static Future<bool> isWelcomeSeen() async {
     final prefs = await SharedPreferences.getInstance();
@@ -32,5 +33,15 @@ class SleepPrefs {
     }
     await prefs.setStringList(_favoritesKey, set.toList());
     return isFav;
+  }
+
+  static Future<bool> getAutoPlayEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_autoPlayKey) ?? true;
+  }
+
+  static Future<void> setAutoPlayEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoPlayKey, enabled);
   }
 }

@@ -32,7 +32,10 @@ class SleepPlaybackService {
     _fallbackTimer?.cancel();
 
     final url = track.audioUrl?.trim() ?? '';
-    final candidates = GoogleDriveUrl.candidates(url);
+    var candidates = GoogleDriveUrl.candidates(url);
+    if (candidates.isEmpty && url.isNotEmpty) {
+      candidates = [url];
+    }
     _usingFallback = candidates.isEmpty;
     _sourceLoaded = false;
 
@@ -174,7 +177,10 @@ class SleepPlaybackService {
     await _ensureInitialized();
     final track = _currentTrack;
     final url = track?.audioUrl?.trim() ?? '';
-    final candidates = GoogleDriveUrl.candidates(url);
+    var candidates = GoogleDriveUrl.candidates(url);
+    if (candidates.isEmpty && url.isNotEmpty) {
+      candidates = [url];
+    }
     if (!_sourceLoaded && candidates.isNotEmpty) {
       try {
         await _setSourceFromList(candidates);
