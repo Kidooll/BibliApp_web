@@ -38,19 +38,25 @@ class _AchievementsGridState extends State<AchievementsGrid> {
       );
     }
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.8,
-      ),
-      itemCount: _achievements.length,
-      itemBuilder: (context, index) {
-        final achievement = _achievements[index];
-        return _AchievementCard(achievement: achievement);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = constraints.maxWidth < 330 ? 2 : 3;
+        final childAspectRatio = crossAxisCount == 2 ? 1.0 : 0.8;
+
+        return GridView.builder(
+          physics: const BouncingScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: childAspectRatio,
+          ),
+          itemCount: _achievements.length,
+          itemBuilder: (context, index) {
+            final achievement = _achievements[index];
+            return _AchievementCard(achievement: achievement);
+          },
+        );
       },
     );
   }

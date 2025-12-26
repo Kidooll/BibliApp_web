@@ -672,14 +672,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     size: 24,
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Conquistas (Achievements)',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  const Expanded(
+                    child: Text(
+                      'Conquistas (Achievements)',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   FutureBuilder<int>(
                     future: AchievementService.getUnlockedCount(),
                     builder: (context, snapshot) {
