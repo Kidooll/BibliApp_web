@@ -3,7 +3,6 @@ import 'package:bibli_app/features/bible/services/bible_service.dart';
 import 'package:bibli_app/features/bible/services/bible_prefs.dart';
 import 'package:bibli_app/features/bible/screens/chapters_screen.dart';
 import 'package:bibli_app/features/missions/services/missions_service.dart';
-import 'package:bibli_app/features/missions/services/weekly_challenges_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BibleScreen extends StatefulWidget {
@@ -16,7 +15,6 @@ class BibleScreen extends StatefulWidget {
 class _BibleScreenState extends State<BibleScreen> {
   final BibleService _service = BibleService();
   late MissionsService _missionsService;
-  late WeeklyChallengesService _weeklyService;
 
   String _translation = 'NVIPT';
   List<Map<String, dynamic>> _books = [];
@@ -31,7 +29,6 @@ class _BibleScreenState extends State<BibleScreen> {
   void initState() {
     super.initState();
     _missionsService = MissionsService(Supabase.instance.client);
-    _weeklyService = WeeklyChallengesService(Supabase.instance.client);
     _loadTranslation();
     _registerBibleMission();
   }
@@ -53,7 +50,6 @@ class _BibleScreenState extends State<BibleScreen> {
     try {
       // Apenas progride a missão de abrir a Bíblia; usuário resgata manualmente
       await _missionsService.incrementMissionByCode('open_bible');
-      await _weeklyService.incrementByType('reading', step: 1);
     } catch (_) {
       // Silenciar para não quebrar a UI de leitura
     }

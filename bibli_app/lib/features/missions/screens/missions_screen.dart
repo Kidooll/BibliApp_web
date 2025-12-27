@@ -295,10 +295,27 @@ class _MissionsScreenState extends State<MissionsScreen>
 
   String _missionTypeLabel(String type) {
     switch (type) {
-      case 'reading':
+      case ChallengeTypes.reading:
+      case ChallengeTypes.legacyReadingTypo:
         return 'Leitura';
-      case 'share':
+      case ChallengeTypes.legacyShare:
+      case ChallengeTypes.sharing:
         return 'Compartilhar';
+      case ChallengeTypes.study:
+        return 'Estudo';
+      case ChallengeTypes.plan:
+        return 'Plano';
+      case ChallengeTypes.devotionals:
+      case ChallengeTypes.legacyDevotional:
+        return 'Devocional';
+      case ChallengeTypes.goal:
+        return 'Meta';
+      case ChallengeTypes.favorite:
+        return 'Favorito';
+      case ChallengeTypes.note:
+        return 'Nota';
+      case 'streak':
+        return 'Sequência';
       case 'habit':
         return 'Hábito';
       default:
@@ -329,7 +346,8 @@ class _MissionsScreenState extends State<MissionsScreen>
         final done = row['is_completed'] == true;
         final claimed = row['is_claimed'] == true;
         final xp = ch['xp_reward'] as int? ?? 0;
-        final type = ch['challenge_type'] as String? ?? 'reading';
+        final type =
+            ch['challenge_type'] as String? ?? ChallengeTypes.reading;
 
         final pct = (target > 0) ? (progress / target).clamp(0, 1).toDouble() : 0.0;
 
@@ -482,15 +500,24 @@ class _MissionsScreenState extends State<MissionsScreen>
 
   IconData _getChallengeIcon(String type) {
     switch (type) {
-      case 'reading':
+      case ChallengeTypes.reading:
+      case ChallengeTypes.legacyReadingTypo:
         return Icons.menu_book;
-      case 'sharing':
+      case ChallengeTypes.sharing:
+      case ChallengeTypes.legacyShare:
         return Icons.share;
-      case 'study':
+      case ChallengeTypes.study:
+        return Icons.school;
+      case ChallengeTypes.plan:
         return Icons.auto_stories;
-      case 'favorite':
+      case ChallengeTypes.devotionals:
+      case ChallengeTypes.legacyDevotional:
+        return Icons.book;
+      case ChallengeTypes.goal:
+        return Icons.flag;
+      case ChallengeTypes.favorite:
         return Icons.favorite;
-      case 'note':
+      case ChallengeTypes.note:
         return Icons.edit_note;
       case 'streak':
         return Icons.local_fire_department;
@@ -737,13 +764,13 @@ class _MissionsScreenState extends State<MissionsScreen>
 
   IconData _getMissionIcon(String type) {
     switch (type) {
-      case 'devotional':
+      case ChallengeTypes.legacyDevotional:
         return Icons.menu_book;
-      case 'share':
+      case ChallengeTypes.legacyShare:
         return Icons.share;
       case 'streak':
         return Icons.local_fire_department;
-      case 'reading':
+      case ChallengeTypes.reading:
         return Icons.auto_stories;
       default:
         return Icons.flag;

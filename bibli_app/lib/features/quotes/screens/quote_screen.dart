@@ -9,6 +9,7 @@ import 'package:flutter/rendering.dart';
 import 'package:bibli_app/features/missions/services/missions_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/missions/services/weekly_challenges_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
 import 'package:bibli_app/core/services/log_service.dart';
 import 'package:bibli_app/core/constants/app_constants.dart';
 import 'package:bibli_app/core/services/cache_service.dart';
@@ -242,7 +243,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
             final service = MissionsService(Supabase.instance.client);
             await service.completeMissionByCode('share_quote');
             final weekly = WeeklyChallengesService(Supabase.instance.client);
-            await weekly.incrementByType('sharing', step: 1);
+            await weekly.incrementByType(ChallengeTypes.sharing, step: 1);
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(

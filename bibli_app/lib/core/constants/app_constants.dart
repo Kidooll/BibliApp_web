@@ -105,3 +105,19 @@ class ReadingPlanRewards {
     return 15;
   }
 }
+
+class ChallengeTypes {
+  static const reading = 'reading';
+  static const devotionals = 'devotionals';
+  static const sharing = 'sharing';
+  static const note = 'note';
+  static const favorite = 'favorite';
+  static const plan = 'plan';
+  static const study = 'study';
+  static const goal = 'goal';
+
+  // Legacy/compat
+  static const legacyReadingTypo = 'lreading';
+  static const legacyShare = 'share';
+  static const legacyDevotional = 'devotional';
+}

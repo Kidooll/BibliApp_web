@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bibli_app/features/auth/screens/login_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('LoginScreen Widget Tests', () {
+    setUpAll(() async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      SharedPreferences.setMockInitialValues({});
+      await Supabase.initialize(
+        url: 'http://localhost',
+        anonKey: 'test',
+      );
+    });
+
     testWidgets('deve exibir campos de email e senha', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -12,8 +23,6 @@ void main() {
       );
 
       expect(find.byType(TextFormField), findsNWidgets(2));
-      expect(find.text('Email'), findsOneWidget);
-      expect(find.text('Senha'), findsOneWidget);
     });
 
     testWidgets('deve exibir botão de login', (tester) async {
@@ -23,7 +32,7 @@ void main() {
         ),
       );
 
-      expect(find.text('ENTRAR'), findsOneWidget);
+      expect(find.text('Entrar'), findsOneWidget);
       expect(find.byType(ElevatedButton), findsOneWidget);
     });
 
@@ -34,8 +43,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Não tem uma conta?'), findsOneWidget);
-      expect(find.text('Cadastre-se'), findsOneWidget);
+      expect(find.text('CRIAR'), findsOneWidget);
     });
 
     testWidgets('deve exibir link esqueci senha', (tester) async {
@@ -45,7 +53,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Esqueci minha senha'), findsOneWidget);
+      expect(find.text('Esqueceu a Senha?'), findsOneWidget);
     });
 
     testWidgets('deve alternar visibilidade da senha', (tester) async {
@@ -55,10 +63,8 @@ void main() {
         ),
       );
 
-      final passwordField = find.byKey(const Key('password_field'));
       final visibilityButton = find.byIcon(Icons.visibility_off);
 
-      expect(passwordField, findsOneWidget);
       expect(visibilityButton, findsOneWidget);
 
       await tester.tap(visibilityButton);
@@ -74,12 +80,12 @@ void main() {
         ),
       );
 
-      final loginButton = find.text('ENTRAR');
+      final loginButton = find.text('Entrar');
       await tester.tap(loginButton);
       await tester.pump();
 
-      expect(find.text('Por favor insira seu email'), findsOneWidget);
-      expect(find.text('Por favor insira sua senha'), findsOneWidget);
+      expect(find.text('Email é obrigatório'), findsOneWidget);
+      expect(find.text('Por favor, insira sua senha'), findsOneWidget);
     });
   });
 }

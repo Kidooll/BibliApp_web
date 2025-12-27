@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/core/services/log_service.dart';
 import 'package:bibli_app/features/missions/services/weekly_challenges_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
 
 /// Serviço para gerenciar favoritos/destaques/notas (tabela `bookmarks`).
 class BookmarksService {
@@ -59,7 +60,8 @@ class BookmarksService {
         if (verseNumber != null) 'verse_number': verseNumber,
       });
       try {
-        await WeeklyChallengesService(_supabase).incrementByType('favorite');
+        await WeeklyChallengesService(_supabase)
+            .incrementByType(ChallengeTypes.favorite);
       } catch (e, stack) {
         LogService.error('Erro ao registrar desafio semanal (favorite)', e, stack, 'BookmarksService');
       }
@@ -109,7 +111,8 @@ class BookmarksService {
         });
       }
       try {
-        await WeeklyChallengesService(_supabase).incrementByType('favorite');
+        await WeeklyChallengesService(_supabase)
+            .incrementByType(ChallengeTypes.favorite);
       } catch (e, stack) {
         LogService.error('Erro ao registrar desafio semanal (favorite)', e, stack, 'BookmarksService');
       }
@@ -191,7 +194,8 @@ class BookmarksService {
         await _supabase.from('bookmarks').insert(data);
       }
       try {
-        await WeeklyChallengesService(_supabase).incrementByType('note');
+        await WeeklyChallengesService(_supabase)
+            .incrementByType(ChallengeTypes.note);
       } catch (e, stack) {
         LogService.error('Erro ao registrar desafio semanal (note)', e, stack, 'BookmarksService');
       }

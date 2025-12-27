@@ -6,6 +6,8 @@ import 'package:bibli_app/features/missions/services/weekly_challenges_service.d
 import 'package:bibli_app/core/services/log_service.dart';
 import 'package:bibli_app/core/services/server_time_service.dart';
 import 'package:bibli_app/features/devotionals/services/devotional_access_service.dart';
+import 'package:bibli_app/core/services/weekly_progress_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
 
 class DevotionalService {
   final SupabaseClient _supabase;
@@ -128,6 +130,13 @@ class DevotionalService {
         rethrow;
       }
 
+      // Atualizar progresso semanal (weekly_progress)
+      try {
+        await WeeklyProgressService(_supabase).incrementDevotionalsRead();
+      } catch (e, stack) {
+        LogService.error('Erro ao atualizar weekly_progress', e, stack, 'DevotionalService');
+      }
+
       // Integrar com sistema de gamificação (só se não foi lido hoje)
       await GamificationService.markDevotionalAsRead(
         devotionalId,
@@ -142,10 +151,10 @@ class DevotionalService {
         LogService.error('Erro ao completar missão', e, stack, 'DevotionalService');
       }
 
-      // Incrementar desafios semanais (reading)
+      // Incrementar desafios semanais (devotionals)
       try {
         final weekly = WeeklyChallengesService(_supabase);
-        await weekly.incrementByType('reading', step: 1);
+        await weekly.incrementByType(ChallengeTypes.devotionals, step: 1);
       } catch (e, stack) {
         LogService.error('Erro ao incrementar desafio', e, stack, 'DevotionalService');
       }

@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/reading_plans/models/reading_plan.dart';
 import 'package:bibli_app/core/services/log_service.dart';
 import 'package:bibli_app/features/missions/services/weekly_challenges_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
 
 class ReadingPlansService {
   final SupabaseClient _client;
@@ -369,11 +370,12 @@ class ReadingPlansService {
       await _client.from('user_reading_plan_item_progress').insert(payload);
       await _touchProgress(progressId);
 
-      // Weekly challenge: treat plan chapters as "study" events
+      // Weekly challenge: treat plan chapters as "plan" events
       try {
-        await WeeklyChallengesService(_client).incrementByType('study', step: 1);
+        await WeeklyChallengesService(_client)
+            .incrementByType(ChallengeTypes.plan, step: 1);
       } catch (e, stack) {
-        LogService.error('Erro ao registrar desafio semanal (study)', e, stack, 'ReadingPlansService');
+        LogService.error('Erro ao registrar desafio semanal (plan)', e, stack, 'ReadingPlansService');
       }
     } catch (e, stack) {
       LogService.error(

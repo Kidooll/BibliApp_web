@@ -1,7 +1,39 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/gamification/services/gamification_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
 
 class WeeklyChallengesService {
+  static const Map<String, List<String>> _challengeTypeAliases = {
+    // Backward-compat: lreading foi typo antigo.
+    ChallengeTypes.reading: [
+      ChallengeTypes.reading,
+      ChallengeTypes.legacyReadingTypo,
+    ],
+    ChallengeTypes.legacyReadingTypo: [
+      ChallengeTypes.reading,
+      ChallengeTypes.legacyReadingTypo,
+    ],
+    ChallengeTypes.sharing: [
+      ChallengeTypes.sharing,
+      ChallengeTypes.legacyShare,
+    ],
+    ChallengeTypes.legacyShare: [
+      ChallengeTypes.sharing,
+      ChallengeTypes.legacyShare,
+    ],
+    ChallengeTypes.devotionals: [
+      ChallengeTypes.devotionals,
+      ChallengeTypes.legacyDevotional,
+    ],
+    ChallengeTypes.legacyDevotional: [
+      ChallengeTypes.devotionals,
+      ChallengeTypes.legacyDevotional,
+    ],
+    ChallengeTypes.plan: [ChallengeTypes.plan],
+    ChallengeTypes.study: [ChallengeTypes.study],
+    ChallengeTypes.goal: [ChallengeTypes.goal],
+  };
+
   final SupabaseClient _supabase;
   WeeklyChallengesService(this._supabase);
 
@@ -75,15 +107,18 @@ class WeeklyChallengesService {
       final user = _supabase.auth.currentUser;
       if (user == null) return;
 
+      final types = _resolveChallengeTypes(challengeType);
       // Buscar desafios ativos da semana por tipo
       final today = DateTime.now().toIso8601String().split('T')[0];
-      final challenges = await _supabase
+      final baseQuery = _supabase
           .from('weekly_challenges')
           .select('id, target_value')
           .eq('is_active', true)
-          .eq('challenge_type', challengeType)
           .lte('start_date', today)
           .gte('end_date', today);
+      final challenges = types.length == 1
+          ? await baseQuery.eq('challenge_type', types.first)
+          : await baseQuery.inFilter('challenge_type', types);
 
       for (final ch in challenges) {
         await ensureUserChallengeRow(ch['id'] as int);
@@ -113,6 +148,53 @@ class WeeklyChallengesService {
     } catch (_) {}
   }
 
+  Future<void> updateGoalProgress({
+    required int currentValue,
+    required int goalTarget,
+  }) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) return;
+      if (goalTarget <= 0) return;
+
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      final challenges = await _supabase
+          .from('weekly_challenges')
+          .select('id')
+          .eq('is_active', true)
+          .eq('challenge_type', ChallengeTypes.goal)
+          .lte('start_date', today)
+          .gte('end_date', today);
+
+      for (final ch in challenges) {
+        final challengeId = ch['id'] as int?;
+        if (challengeId == null) continue;
+        await ensureUserChallengeRow(challengeId);
+        final rows = await _supabase
+            .from('user_challenge_progress')
+            .select('id, current_progress, is_completed, completed_at')
+            .eq('user_profile_id', user.id)
+            .eq('challenge_id', challengeId)
+            .order('id', ascending: false)
+            .limit(1);
+        if (rows.isEmpty) continue;
+        final row = rows.first;
+        final isCompleted = currentValue >= goalTarget;
+        final updates = <String, dynamic>{
+          'current_progress': currentValue,
+          'is_completed': isCompleted,
+        };
+        if (isCompleted && row['is_completed'] != true) {
+          updates['completed_at'] = DateTime.now().toIso8601String();
+        }
+        await _supabase
+            .from('user_challenge_progress')
+            .update(updates)
+            .eq('id', row['id']);
+      }
+    } catch (_) {}
+  }
+
   Future<bool> claimChallenge(int userChallengeProgressId) async {
     try {
       final user = _supabase.auth.currentUser;
@@ -121,7 +203,7 @@ class WeeklyChallengesService {
       final row = await _supabase
           .from('user_challenge_progress')
           .select(
-            'id, is_completed, challenge_id, weekly_challenges (title, xp_reward)',
+            'id, is_completed, challenge_id, weekly_challenges (title, xp_reward, coin_reward)',
           )
           .eq('id', userChallengeProgressId)
           .eq('user_profile_id', user.id)
@@ -132,6 +214,7 @@ class WeeklyChallengesService {
       final ch = row['weekly_challenges'] as Map<String, dynamic>;
       final title = ch['title'] as String? ?? 'Desafio semanal';
       final xp = ch['xp_reward'] as int? ?? 0;
+      final coin = ch['coin_reward'] as int? ?? 0;
 
       // Evita múltiplos resgates do mesmo desafio (anti-farming)
       final alreadyClaimed = await _supabase
@@ -160,10 +243,49 @@ class WeeklyChallengesService {
           'related_id': row['challenge_id'] as int?,
         });
       }
+
+      if (coin > 0) {
+        final profile = await _supabase
+            .from('user_profiles')
+            .select('coins')
+            .eq('id', user.id)
+            .maybeSingle();
+        final currentCoins = (profile?['coins'] as int?) ?? 0;
+        await _supabase.from('user_profiles').update({
+          'coins': currentCoins + coin,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', user.id);
+      }
       return true;
     } catch (_) {
       return false;
     }
+  }
+
+  List<String> _resolveChallengeTypes(String challengeType) {
+    final normalized = challengeType.trim().toLowerCase();
+    return _challengeTypeAliases[normalized] ?? [normalized];
+  }
+
+  Future<int?> _fetchWeeklyGoal(String userId) async {
+    try {
+      final profile = await _supabase
+          .from('user_profiles')
+          .select('weekly_goal')
+          .eq('id', userId)
+          .maybeSingle();
+      final goal = (profile?['weekly_goal'] as int?) ?? 0;
+      if (goal <= 0) return null;
+      return goal;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _applyGoalTarget(Map<String, dynamic> challenge, int? weeklyGoal) {
+    if (weeklyGoal == null) return;
+    if ((challenge['challenge_type'] as String?) != ChallengeTypes.goal) return;
+    challenge['target_value'] = weeklyGoal;
   }
 
   Future<List<Map<String, dynamic>>> getWeeklyChallengesWithProgress() async {
@@ -172,6 +294,7 @@ class WeeklyChallengesService {
       if (user == null) return [];
 
       final today = DateTime.now().toIso8601String().split('T')[0];
+      final weeklyGoal = await _fetchWeeklyGoal(user.id);
 
       // 1) Desafios ativos nesta semana
       final active = await _supabase
@@ -212,6 +335,7 @@ class WeeklyChallengesService {
       // 3) Mesclar e retornar
       final List<Map<String, dynamic>> result = [];
       for (final ch in active) {
+        _applyGoalTarget(ch, weeklyGoal);
         final chId = ch['id'] as int;
         final p = challengeIdToProgress[chId];
         result.add({

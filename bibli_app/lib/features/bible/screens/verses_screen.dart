@@ -4,7 +4,9 @@ import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bibli_app/features/reading_plans/services/reading_plans_service.dart';
 import 'package:bibli_app/features/bookmarks/services/bookmarks_service.dart';
+import 'package:bibli_app/features/missions/services/weekly_challenges_service.dart';
 import 'package:bibli_app/core/services/log_service.dart';
+import 'package:bibli_app/core/constants/app_constants.dart';
 
 import '../services/bible_service.dart';
 
@@ -206,6 +208,7 @@ class _VersesScreenState extends State<VersesScreen> {
   Future<void> _maybeAdvanceChapter() async {
     if (_autoAdvancing || _loading) return;
     await _markChapterAsRead();
+    await _registerReadingChallenge();
     if (!mounted) return;
     if (_chapter >= widget.chapterCount) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -249,6 +252,18 @@ class _VersesScreenState extends State<VersesScreen> {
       chapterNumber: _chapter,
     );
     _markedChapters.add(_chapter);
+  }
+
+  Future<void> _registerReadingChallenge() async {
+    if (widget.readingPlanId != null) return;
+    if (_markedChapters.contains(_chapter)) return;
+    try {
+      await WeeklyChallengesService(Supabase.instance.client)
+          .incrementByType(ChallengeTypes.reading, step: 1);
+      _markedChapters.add(_chapter);
+    } catch (e, stack) {
+      LogService.error('Erro ao registrar desafio semanal (reading)', e, stack, 'VersesScreen');
+    }
   }
 
   void _decreaseFont() {

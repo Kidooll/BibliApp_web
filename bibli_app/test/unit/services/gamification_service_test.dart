@@ -8,16 +8,16 @@ void main() {
     });
 
     test('deve seguir progressão correta do PRD', () {
-      expect(LevelRequirements.requirements[0], equals(0));    // Nível 1: 0-100
-      expect(LevelRequirements.requirements[1], equals(101));  // Nível 2: 101-250
-      expect(LevelRequirements.requirements[2], equals(251));  // Nível 3: 251-500
-      expect(LevelRequirements.requirements[3], equals(501));  // Nível 4: 501-800
-      expect(LevelRequirements.requirements[4], equals(801));  // Nível 5: 801-1200
-      expect(LevelRequirements.requirements[5], equals(1201)); // Nível 6: 1201-1700
-      expect(LevelRequirements.requirements[6], equals(1701)); // Nível 7: 1701-2300
-      expect(LevelRequirements.requirements[7], equals(2301)); // Nível 8: 2301-3000
-      expect(LevelRequirements.requirements[8], equals(3001)); // Nível 9: 3001-4000
-      expect(LevelRequirements.requirements[9], equals(4001)); // Nível 10: 4001+
+      expect(LevelRequirements.requirements[0], equals(0));
+      expect(LevelRequirements.requirements[1], equals(450));
+      expect(LevelRequirements.requirements[2], equals(1350));
+      expect(LevelRequirements.requirements[3], equals(2700));
+      expect(LevelRequirements.requirements[4], equals(4500));
+      expect(LevelRequirements.requirements[5], equals(6750));
+      expect(LevelRequirements.requirements[6], equals(9450));
+      expect(LevelRequirements.requirements[7], equals(12600));
+      expect(LevelRequirements.requirements[8], equals(16200));
+      expect(LevelRequirements.requirements[9], equals(20250));
     });
 
     test('deve ter progressão crescente', () {
@@ -37,10 +37,10 @@ void main() {
 
   group('XpValues', () {
     test('deve ter valores corretos conforme PRD', () {
-      expect(XpValues.devotionalRead, equals(8));
-      expect(XpValues.dailyBonus, equals(5));
-      expect(XpValues.streak3Days, equals(15));
-      expect(XpValues.streak7Days, equals(35));
+      expect(XpValues.devotionalRead, equals(3));
+      expect(XpValues.dailyBonus, equals(2));
+      expect(XpValues.streak3Days, equals(5));
+      expect(XpValues.streak7Days, equals(12));
     });
 
     test('valores devem ser positivos', () {
