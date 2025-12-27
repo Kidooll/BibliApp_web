@@ -509,9 +509,7 @@ class _DevotionalScreenState extends State<DevotionalScreen> {
                   await _bookmarksService.toggleDevotionalFavorite(devotionalId);
               if (!mounted) return;
               if (ok) {
-                setState(() {
-                  _isFavorite = !_isFavorite;
-                });
+                await _loadFavoriteState(devotionalId);
               } else {
                 _showSnackBar(
                   const SnackBar(

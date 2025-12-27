@@ -327,6 +327,7 @@ class _MissionsScreenState extends State<MissionsScreen>
         final target = ch['target_value'] as int? ?? 1;
         final progress = row['current_progress'] as int? ?? 0;
         final done = row['is_completed'] == true;
+        final claimed = row['is_claimed'] == true;
         final xp = ch['xp_reward'] as int? ?? 0;
         final type = ch['challenge_type'] as String? ?? 'reading';
 
@@ -433,10 +434,12 @@ class _MissionsScreenState extends State<MissionsScreen>
                   ),
                 ),
                 // Botão de ação
-                if (done)
+                if (done && !claimed)
                   ElevatedButton(
                     onPressed: () async {
-                      final ok = await _weeklyService.claimChallenge(row['id'] as int);
+                      final ok = await _weeklyService.claimChallenge(
+                        row['id'] as int,
+                      );
                       if (ok && mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -453,12 +456,21 @@ class _MissionsScreenState extends State<MissionsScreen>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                     ),
                     child: const Text(
                       'Resgatar',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
+                  )
+                else if (done && claimed)
+                  _chip(
+                    label: 'Resgatado',
+                    color: Colors.green,
+                    background: Colors.green.withOpacity(0.12),
                   ),
               ],
             ),
@@ -844,27 +856,17 @@ class _MissionsScreenState extends State<MissionsScreen>
   Widget _buildXpCard() {
     final levelName = _currentLevel?.levelName ?? 'Buscador';
     final currentLevelNumber = _currentLevel?.levelNumber ?? 1;
-    final thresholds = _levelThresholds();
-
-    // Garantir lista ordenada
-    thresholds.sort((a, b) => (a['level'] as int).compareTo(b['level'] as int));
-    int idx = thresholds.indexWhere(
-      (t) => (t['level'] ?? 0) == currentLevelNumber,
-    );
-    if (idx == -1) {
-      idx = thresholds.indexWhere(
-        (t) => (t['level'] ?? 0) > currentLevelNumber,
-      );
-    }
-    if (idx == -1) idx = thresholds.length - 1;
-
-    final prevThreshold = idx > 0 ? thresholds[idx - 1]['xp'] as int : 0;
-    // Próximo limiar: usa entrada seguinte; se não houver, usa XP atual + xpToNextLevel
+    final requirements = LevelRequirements.requirements;
+    final clampedLevel = currentLevelNumber.clamp(1, requirements.length);
+    final currentIdx = clampedLevel - 1;
+    final prevThreshold = requirements[currentIdx];
     int nextThreshold;
-    if (idx + 1 < thresholds.length) {
-      nextThreshold = thresholds[idx + 1]['xp'] as int;
+    if (currentIdx + 1 < requirements.length) {
+      nextThreshold = requirements[currentIdx + 1];
     } else {
-      final fallbackDelta = _xpToNextLevel > 0 ? _xpToNextLevel : LevelRequirements.defaultXpToNextLevel;
+      final fallbackDelta = _xpToNextLevel > 0
+          ? _xpToNextLevel
+          : LevelRequirements.defaultXpToNextLevel;
       nextThreshold = _totalXp + fallbackDelta;
     }
 
@@ -1032,56 +1034,65 @@ class _MissionsScreenState extends State<MissionsScreen>
   }
 
   List<Map<String, String>> _staticMilestones() {
+    final thresholds = LevelRequirements.requirements;
     return [
       {
         'level': '1',
         'title': 'Novato na Fé',
-        'description': 'Iniciou a jornada espiritual (0-100 XP)',
+        'description': 'Iniciou a jornada espiritual (0-${thresholds[1] - 1} XP)',
       },
       {
         'level': '2',
         'title': 'Buscador',
-        'description': 'Em busca de conhecimento (101-250 XP)',
+        'description':
+            'Em busca de conhecimento (${thresholds[1]}-${thresholds[2] - 1} XP)',
       },
       {
         'level': '3',
         'title': 'Discípulo',
-        'description': 'Comprometido com o aprendizado (251-500 XP)',
+        'description':
+            'Comprometido com o aprendizado (${thresholds[2]}-${thresholds[3] - 1} XP)',
       },
       {
         'level': '4',
         'title': 'Servo Fiel',
-        'description': 'Dedicado à prática diária (501-800 XP)',
+        'description':
+            'Dedicado à prática diária (${thresholds[3]}-${thresholds[4] - 1} XP)',
       },
       {
         'level': '5',
         'title': 'Estudioso',
-        'description': 'Conhecedor das Escrituras (801-1200 XP)',
+        'description':
+            'Conhecedor das Escrituras (${thresholds[4]}-${thresholds[5] - 1} XP)',
       },
       {
         'level': '6',
         'title': 'Sábio',
-        'description': 'Sabedoria espiritual (1201-1700 XP)',
+        'description':
+            'Sabedoria espiritual (${thresholds[5]}-${thresholds[6] - 1} XP)',
       },
       {
         'level': '7',
         'title': 'Mestre',
-        'description': 'Mestre na Palavra (1701-2300 XP)',
+        'description':
+            'Mestre na Palavra (${thresholds[6]}-${thresholds[7] - 1} XP)',
       },
       {
         'level': '8',
         'title': 'Líder Espiritual',
-        'description': 'Líder e exemplo (2301-3000 XP)',
+        'description':
+            'Líder e exemplo (${thresholds[7]}-${thresholds[8] - 1} XP)',
       },
       {
         'level': '9',
         'title': 'Mentor',
-        'description': 'Guia de outros (3001-4000 XP)',
+        'description':
+            'Guia de outros (${thresholds[8]}-${thresholds[9] - 1} XP)',
       },
       {
         'level': '10',
         'title': 'Gigante da Fé',
-        'description': 'Máximo nível espiritual (4001+ XP)',
+        'description': 'Máximo nível espiritual (${thresholds[9]}+ XP)',
       },
     ];
   }
@@ -1098,24 +1109,9 @@ class _MissionsScreenState extends State<MissionsScreen>
   }
 
   List<Map<String, int>> _levelThresholds() {
-    if (_levels.isNotEmpty) {
-      return [
-        {'level': 0, 'xp': 0},
-        ..._levels.map((l) => {'level': l.levelNumber, 'xp': l.xpRequired}),
-      ];
-    }
-    // Fallback usando valores do PRD
     return [
-      {'level': 0, 'xp': 0},
-      {'level': 1, 'xp': 101},
-      {'level': 2, 'xp': 251},
-      {'level': 3, 'xp': 501},
-      {'level': 4, 'xp': 801},
-      {'level': 5, 'xp': 1201},
-      {'level': 6, 'xp': 1701},
-      {'level': 7, 'xp': 2301},
-      {'level': 8, 'xp': 3001},
-      {'level': 9, 'xp': 4001},
+      for (var i = 0; i < LevelRequirements.requirements.length; i += 1)
+        {'level': i + 1, 'xp': LevelRequirements.requirements[i]},
     ];
   }
 

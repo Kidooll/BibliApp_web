@@ -199,106 +199,110 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _showEditProfileDialog(BuildContext context) async {
     final nameController = TextEditingController(text: _username ?? '');
+    String? errorText;
+    String? newName;
 
     try {
-      await showDialog(
+      newName = await showDialog<String>(
         context: context,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.edit, color: AppColors.primary),
-              SizedBox(width: 8),
-              Text('Editar Perfil'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome de usuário',
-                  border: OutlineInputBorder(),
+        builder: (context) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.borderRadius),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.edit, color: AppColors.primary),
+                SizedBox(width: 8),
+                Text('Editar Perfil'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Nome de usuário',
+                    border: const OutlineInputBorder(),
+                    errorText: errorText,
+                  ),
                 ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Outras opções de edição estarão disponíveis em breve.',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Outras opções de edição estarão disponíveis em breve.',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ElevatedButton(
+                onPressed: () {
+                  final value = nameController.text.trim();
+                  if (value.isEmpty) {
+                    setDialogState(() {
+                      errorText = 'Nome não pode ser vazio';
+                    });
+                    return;
+                  }
+                  Navigator.pop(context, value);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Salvar'),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final messenger = ScaffoldMessenger.of(this.context);
-                final newName = nameController.text.trim();
-                if (newName.isEmpty) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('⚠️ Nome não pode ser vazio'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                  return;
-                }
-
-                Navigator.pop(context);
-
-                try {
-                  final user = Supabase.instance.client.auth.currentUser;
-                  if (user == null) return;
-
-                  await Supabase.instance.client
-                      .from('user_profiles')
-                      .update({'username': newName})
-                      .eq('id', user.id);
-
-                  if (!mounted) return;
-                  setState(() {
-                    _username = newName;
-                  });
-
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('✅ Perfil atualizado com sucesso'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                } catch (e, stack) {
-                  LogService.error(
-                    'Erro ao atualizar perfil',
-                    e,
-                    stack,
-                    'ProfileScreen',
-                  );
-                  if (!mounted) return;
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('❌ Erro ao atualizar perfil'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Salvar'),
-            ),
-          ],
         ),
       );
     } finally {
       nameController.dispose();
+    }
+
+    if (newName == null) return;
+    if (!mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      await Supabase.instance.client
+          .from('user_profiles')
+          .update({'username': newName})
+          .eq('id', user.id);
+
+      if (!mounted) return;
+      setState(() {
+        _username = newName;
+      });
+
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('✅ Perfil atualizado com sucesso'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e, stack) {
+      LogService.error(
+        'Erro ao atualizar perfil',
+        e,
+        stack,
+        'ProfileScreen',
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('❌ Erro ao atualizar perfil'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

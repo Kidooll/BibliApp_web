@@ -1,3 +1,5 @@
+import 'package:bibli_app/core/constants/app_constants.dart';
+
 class UserProfile {
   final String id;
   final String? username;
@@ -33,7 +35,8 @@ class UserProfile {
       totalDevotionalsRead: json['total_devotionals_read'] ?? 0,
       totalXp: json['total_xp'] ?? 0,
       currentLevel: json['current_level'] ?? 1,
-      xpToNextLevel: json['xp_to_next_level'] ?? 100,
+      xpToNextLevel:
+          json['xp_to_next_level'] ?? LevelRequirements.initialXpToNextLevel,
       coins: json['coins'] ?? 0,
       weeklyGoal: json['weekly_goal'] ?? 7,
       createdAt: DateTime.parse(json['created_at']),

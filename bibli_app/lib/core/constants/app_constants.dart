@@ -29,15 +29,15 @@ class XpValues {
 class LevelRequirements {
   // Níveis conforme PRD (ajustados +50% para aumentar dificuldade)
   static const level1 = 0;      // Novato na Fé (0-150)
-  static const level2 = 150;    // Buscador (150-375)
-  static const level3 = 375;    // Discípulo (375-750)
-  static const level4 = 750;    // Servo Fiel (750-1200)
-  static const level5 = 1200;   // Estudioso (1200-1800)
-  static const level6 = 1800;   // Sábio (1800-2550)
-  static const level7 = 2550;   // Mestre (2550-3450)
-  static const level8 = 3450;   // Líder Espiritual (3450-4500)
-  static const level9 = 4500;   // Mentor (4500-6000)
-  static const level10 = 6000;  // Gigante da Fé (6000+)
+  static const level2 = 450;    // Buscador (450-1349)
+  static const level3 = 1350;   // Discípulo (1350-2699)
+  static const level4 = 2700;   // Servo Fiel (2700-4499)
+  static const level5 = 4500;   // Estudioso (4500-6749)
+  static const level6 = 6750;   // Sábio (6750-9449)
+  static const level7 = 9450;   // Mestre (9450-12599)
+  static const level8 = 12600;  // Líder Espiritual (12600-16199)
+  static const level9 = 16200;  // Mentor (16200-20249)
+  static const level10 = 20250; // Gigante da Fé (20250+)
   
   static const requirements = [
     level1, level2, level3, level4, level5,
@@ -59,8 +59,8 @@ class LevelRequirements {
   ];
   
   // Constantes para compatibilidade
-  static const initialXpToNextLevel = 100;
-  static const defaultXpToNextLevel = 200;
+  static const initialXpToNextLevel = level2;
+  static const defaultXpToNextLevel = 900;
 }
 
 class HttpStatusCodes {

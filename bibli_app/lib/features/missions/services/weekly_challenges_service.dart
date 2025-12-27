@@ -52,11 +52,20 @@ class WeeklyChallengesService {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) return;
-      await _supabase.from('user_challenge_progress').upsert({
+      final existing = await _supabase
+          .from('user_challenge_progress')
+          .select('id')
+          .eq('user_profile_id', user.id)
+          .eq('challenge_id', challengeId)
+          .limit(1);
+      if (existing.isNotEmpty) return;
+
+      await _supabase.from('user_challenge_progress').insert({
         'user_profile_id': user.id,
         'challenge_id': challengeId,
         'current_progress': 0,
         'is_completed': false,
+        'started_at': DateTime.now().toIso8601String(),
       });
     } catch (_) {}
   }
@@ -78,13 +87,15 @@ class WeeklyChallengesService {
 
       for (final ch in challenges) {
         await ensureUserChallengeRow(ch['id'] as int);
-        final row = await _supabase
+        final rows = await _supabase
             .from('user_challenge_progress')
             .select('id, current_progress, is_completed')
             .eq('user_profile_id', user.id)
             .eq('challenge_id', ch['id'])
-            .maybeSingle();
-        if (row == null) continue;
+            .order('id', ascending: false)
+            .limit(1);
+        if (rows.isEmpty) continue;
+        final row = rows.first;
         if (row['is_completed'] == true) continue;
 
         final newProgress = (row['current_progress'] as int? ?? 0) + step;
@@ -113,7 +124,9 @@ class WeeklyChallengesService {
             'id, is_completed, challenge_id, weekly_challenges (title, xp_reward)',
           )
           .eq('id', userChallengeProgressId)
-          .single();
+          .eq('user_profile_id', user.id)
+          .maybeSingle();
+      if (row == null) return false;
       if (row['is_completed'] != true) return false;
 
       final ch = row['weekly_challenges'] as Map<String, dynamic>;
@@ -138,6 +151,14 @@ class WeeklyChallengesService {
           relatedId: row['challenge_id'] as int?,
         );
         if (!ok) return false;
+      } else {
+        await _supabase.from('xp_transactions').insert({
+          'user_id': user.id,
+          'xp_amount': 0,
+          'transaction_type': 'weekly_challenge',
+          'description': 'Desafio semanal: $title',
+          'related_id': row['challenge_id'] as int?,
+        });
       }
       return true;
     } catch (_) {
@@ -160,6 +181,20 @@ class WeeklyChallengesService {
           .lte('start_date', today)
           .gte('end_date', today)
           .order('id');
+      final activeIds = active.map((row) => row['id'] as int).toList();
+
+      final claimedRows = await _supabase
+          .from('xp_transactions')
+          .select('related_id, created_at')
+          .eq('user_id', user.id)
+          .eq('transaction_type', 'weekly_challenge');
+      final claimedMap = <int, String>{};
+      for (final row in claimedRows) {
+        final id = row['related_id'];
+        if (id is int && activeIds.contains(id)) {
+          claimedMap[id] = row['created_at']?.toString() ?? '';
+        }
+      }
 
       // 2) Progresso do usuário (pode estar vazio)
       final progressRows = await _supabase
@@ -186,6 +221,8 @@ class WeeklyChallengesService {
           'current_progress': p != null ? (p['current_progress'] ?? 0) : 0,
           'is_completed': p != null ? (p['is_completed'] ?? false) : false,
           'completed_at': p != null ? p['completed_at'] : null,
+          'is_claimed': claimedMap.containsKey(chId),
+          'claimed_at': claimedMap[chId],
           // Embutir dados do desafio
           'weekly_challenges': ch,
         });

@@ -246,14 +246,16 @@ class BookmarksService {
           .select('id')
           .eq('user_profile_id', user.id)
           .eq('bookmark_type', 'devotional')
-          .eq('devotional_id', devotionalId)
-          .maybeSingle();
+          .eq('devotional_id', devotionalId);
 
-      if (existing != null) {
+      final rows = List<Map<String, dynamic>>.from(existing);
+      if (rows.isNotEmpty) {
         await _supabase
             .from('bookmarks')
             .delete()
-            .eq('id', existing['id'] as int);
+            .eq('user_profile_id', user.id)
+            .eq('bookmark_type', 'devotional')
+            .eq('devotional_id', devotionalId);
         return true;
       }
 
@@ -278,9 +280,9 @@ class BookmarksService {
           .select('id')
           .eq('user_profile_id', user.id)
           .eq('bookmark_type', 'devotional')
-          .eq('devotional_id', devotionalId)
-          .maybeSingle();
-      return existing != null;
+          .eq('devotional_id', devotionalId);
+      final rows = List<Map<String, dynamic>>.from(existing);
+      return rows.isNotEmpty;
     } catch (e, stack) {
       LogService.error(
         'Erro ao verificar favorito de devocional',

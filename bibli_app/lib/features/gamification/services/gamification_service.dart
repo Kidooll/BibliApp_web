@@ -371,6 +371,7 @@ class GamificationService {
       // Atualizar leitura semanal/contagem simples na user_profiles
       final currentLevel = await getCurrentLevel();
       final currentXp = await getTotalXp();
+      final xpToNextLevel = _xpToNextLevelFor(currentXp);
       
       LogService.info(
         'Atualizando user_profiles: level=$currentLevel, xp=$currentXp',
@@ -382,6 +383,7 @@ class GamificationService {
         'total_devotionals_read': totalDevotionalsRead,
         'current_level': currentLevel,
         'total_xp': currentXp,
+        'xp_to_next_level': xpToNextLevel,
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'id');
 
@@ -572,6 +574,17 @@ class GamificationService {
     }
     
     return 0;
+  }
+
+  static int _xpToNextLevelFor(int totalXp) {
+    final currentLevel = _levelForXp(totalXp);
+    const levelRequirements = LevelRequirements.requirements;
+
+    if (currentLevel >= levelRequirements.length) {
+      return 0;
+    }
+
+    return levelRequirements[currentLevel] - totalXp;
   }
 
   static int _levelForXp(int totalXp) {
