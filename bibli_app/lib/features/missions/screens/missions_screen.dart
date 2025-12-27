@@ -856,7 +856,7 @@ class _MissionsScreenState extends State<MissionsScreen>
   Widget _buildXpCard() {
     final levelName = _currentLevel?.levelName ?? 'Buscador';
     final currentLevelNumber = _currentLevel?.levelNumber ?? 1;
-    final requirements = LevelRequirements.requirements;
+    const requirements = LevelRequirements.requirements;
     final clampedLevel = currentLevelNumber.clamp(1, requirements.length);
     final currentIdx = clampedLevel - 1;
     final prevThreshold = requirements[currentIdx];
@@ -1034,7 +1034,7 @@ class _MissionsScreenState extends State<MissionsScreen>
   }
 
   List<Map<String, String>> _staticMilestones() {
-    final thresholds = LevelRequirements.requirements;
+    const thresholds = LevelRequirements.requirements;
     return [
       {
         'level': '1',
